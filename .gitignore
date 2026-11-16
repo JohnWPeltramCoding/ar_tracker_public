@@ -1,0 +1,16 @@
+/target
+
+# Local databases and data files (the app's data lives in PostgreSQL)
+*.db
+*.db-shm
+*.db-wal
+
+# Local settings / secrets
+.env
+.env.*
+
+# Real report files – never commit customer data
+*.xlsx
+*.xlsm
+*.xls
+*.csv

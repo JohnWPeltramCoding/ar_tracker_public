@@ -1,0 +1,1416 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AR Tracker</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --panel: #fff; --ink: #1d2330; --muted: #6b7280; --line: #e3e6eb;
+    --accent: #2457c5; --accent-soft: #e8eefb; --danger: #b42318;
+    --t366: #f8d0cc; --t365: #fde3c4; --t182: #fdf3c0; --ttot: #d6e6fb;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 13px/1.4 "Segoe UI", system-ui, sans-serif; color: var(--ink); background: var(--bg); height: 100vh; display: flex; flex-direction: column; }
+  header { display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: #1f2a44; color: #fff; }
+  header h1 { font-size: 16px; margin: 0 12px 0 0; font-weight: 600; }
+  header .sp { flex: 1; }
+  header input { width: 70px; }
+  button, .btn { font: inherit; border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.ghost { background: transparent; color: inherit; border-color: rgba(255,255,255,.35); }
+  button:disabled { opacity: .5; cursor: default; }
+  input, select, textarea { font: inherit; border: 1px solid var(--line); border-radius: 4px; padding: 3px 5px; background: #fff; color: var(--ink); }
+  .wrap { flex: 1; display: flex; min-height: 0; }
+  nav { width: 250px; background: var(--panel); border-right: 1px solid var(--line); overflow: auto; }
+  nav .co { padding: 9px 14px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  nav .co:hover { background: #f7f8fa; }
+  nav .co.sel { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 11px; }
+  nav .co b { display: block; }
+  nav .co small { color: var(--muted); }
+  nav .empty { padding: 16px; color: var(--muted); }
+  main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  .toolbar h2 { margin: 0; font-size: 17px; }
+  .toolbar .muted { color: var(--muted); }
+  .tabs { display: flex; gap: 2px; }
+  .tabs button { border-radius: 6px 6px 0 0; }
+  .tabs button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .summary { display: flex; gap: 14px; padding: 6px 16px; background: #fafbfc; border-bottom: 1px solid var(--line); font-size: 12px; flex-wrap: wrap; }
+  .summary span b { display: block; font-size: 13px; }
+  .grid { flex: 1; overflow: auto; }
+  table { border-collapse: separate; border-spacing: 0; }
+  .grid table { min-width: 100%; }
+  th, td { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 4px 6px; vertical-align: top; background: var(--panel); }
+  th { position: sticky; top: 0; z-index: 2; background: #eef1f5; text-align: left; font-weight: 600; white-space: nowrap; font-size: 12px; }
+  th.sortable { cursor: pointer; }
+  .sticky1 { position: sticky; left: 0; z-index: 1; min-width: 110px; }
+  .sticky2 { position: sticky; left: 110px; z-index: 1; min-width: 220px; max-width: 260px; }
+  th.sticky1, th.sticky2 { z-index: 3; }
+  td.num, th.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  td.neg { color: var(--danger); }
+  td.t366 { background: var(--t366); } td.t365 { background: var(--t365); } td.t182 { background: var(--t182); } td.ttot { background: var(--ttot); font-weight: 600; }
+  td.name a { color: var(--ink); text-decoration: none; font-weight: 500; cursor: pointer; }
+  td.name a:hover { text-decoration: underline; }
+  .tag { display: inline-block; font-size: 10px; padding: 0 5px; border-radius: 8px; background: #e7f6ec; color: #146c2e; margin-left: 4px; }
+  td.attr input, td.attr select { width: 100%; min-width: 110px; }
+  td.attr input[type=date] { min-width: 125px; }
+  td.notes { min-width: 300px; }
+  td.notes textarea { width: 100%; min-height: 34px; resize: vertical; }
+  td.prior { min-width: 280px; max-width: 420px; }
+  .prior-sum { color: var(--muted); cursor: pointer; user-select: none; }
+  .prior-sum:hover { color: var(--accent); }
+  .wk { margin: 2px 0 6px; white-space: pre-wrap; }
+  .wk .h { font-size: 11px; color: var(--muted); font-weight: 600; }
+  .clip { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-wrap; }
+  td.act { min-width: 380px; max-width: 520px; }
+  .qa { display: flex; gap: 4px; margin-bottom: 4px; }
+  .qa select { width: 108px; flex: none; } .qa input { flex: 1; min-width: 0; }
+  .ent { margin: 3px 0; word-break: break-word; } .ent .bd { white-space: pre-wrap; }
+  .ent .meta { font-size: 11px; color: var(--muted); }
+  .ent.clip1 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .kb { display: inline-block; font-size: 10px; font-weight: 600; padding: 0 5px; border-radius: 8px; background: #eef1f5; color: #374151; margin-right: 3px; vertical-align: 1px; }
+  .kb.k-call, .kb.k-voicemail, .kb.k-email, .kb.k-text, .kb.k-site { background: #e0ecff; color: #1d4ed8; }
+  .kb.k-promise { background: #e7f6ec; color: #146c2e; } .kb.k-payment { background: #d1fadf; color: #05603a; }
+  .kb.k-dispute, .kb.k-escalation { background: #fde2e1; color: #b42318; }
+  .wkh { font-size: 11px; font-weight: 700; color: var(--muted); margin: 8px 0 2px; border-bottom: 1px dashed var(--line); cursor: pointer; user-select: none; }
+  .wkh:hover { color: var(--accent); }
+  td.due input { border-color: var(--danger); background: #fff1f0; }
+  .age { font-size: 12px; white-space: nowrap; } .age.warn { color: #b54708; font-weight: 600; } .age.bad { color: var(--danger); font-weight: 700; }
+  .addbox { background: #f7f9fc; border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin-bottom: 12px; }
+  .addbox .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 6px; }
+  .addbox textarea { width: 100%; min-height: 64px; resize: vertical; }
+  .tl .ent { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; margin: 4px 0; }
+  .tl .ent .acts { float: right; visibility: hidden; } .tl .ent:hover .acts { visibility: visible; }
+  .tl .ent .acts button { font-size: 11px; padding: 1px 6px; }
+  .tl .ent.imp { background: #fbfbf8; }
+  .tl .ent.deleted { background: #fff5f5; border-style: dashed; } .tl .ent.deleted .bd { text-decoration: line-through; color: var(--muted); }
+  .vlink { color: var(--accent); }
+  .vers:empty { display: none; } .vers { margin-top: 6px; border-left: 3px solid var(--line); padding-left: 8px; font-size: 12px; }
+  .vers .v { margin: 4px 0; } .vers .v .meta { font-weight: 600; }
+  .tiles { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; min-width: 150px; }
+  .tile span { display: block; font-size: 12px; color: var(--muted); } .tile b { font-size: 20px; }
+  .tile.alert { border-color: #f5b5ae; background: #fff5f4; } .tile.alert b { color: var(--danger); }
+  table.mw { width: 100%; } table.mw td { vertical-align: middle; } table.mw td.name a { cursor: pointer; font-weight: 500; }
+  details.card > summary { cursor: pointer; }
+  /* dashboard (colours from the dataviz reference palette: one blue ramp for ordered buckets) */
+  .viz { --series-1: #2a78d6; --grid: #e6e8ec; --axis: #6b7280; --good-text: #006300; --bad-text: #b42318;
+         --b0: #86b6ef; --b30: #6da7ec; --b60: #3987e5; --b90: #2a78d6; --b182: #256abf; --b365: #184f95; --b366: #0d366b; }
+  .viz { --cat-1: #2a78d6; --cat-2: #eb6834; --cat-3: #1baf7a; --cat-4: #eda100; --cat-5: #e87ba4; }
+  .pie-wrap { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+  .mlegend { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: auto auto auto auto; gap: 6px 10px; align-items: center; font-size: 13px; }
+  .mlegend li { display: contents; } .mlegend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; } .mlegend b { text-align: right; }
+  .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px; }
+  .charts .card { margin: 0; }
+  .chart svg { width: 100%; height: auto; display: block; }
+  .chart .hit { fill: transparent; cursor: default; } .chart .hit:hover { fill: rgba(0,0,0,.04); }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--muted); margin: 0 0 6px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+  .delta { font-size: 12px; font-weight: 600; display: block; margin-top: 2px; } .delta.good { color: var(--good-text); } .delta.bad { color: var(--bad-text); } .delta.flat { color: var(--muted); }
+  #vizTip { position: fixed; pointer-events: none; background: #1f2a44; color: #fff; font-size: 12px; padding: 6px 9px; border-radius: 6px; z-index: 50; display: none; white-space: nowrap; line-height: 1.5; }
+  .coverage { background: #fff8e6; border: 1px solid #f3dca0; border-radius: 6px; padding: 6px 10px; font-size: 12px; margin-bottom: 12px; }
+  table.dash td, table.dash th { white-space: nowrap; } table.dash tr.click { cursor: pointer; } table.dash tr.click:hover td { background: #f7f9fc; }
+  .contacts-box { border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin-bottom: 12px; }
+  .ap-slot > .contact, .ap-slot > .cform { border-top: none; margin-top: 0; padding-top: 0; }
+  .addl-head { display: flex; align-items: center; gap: 8px; border-top: 2px solid var(--line); margin-top: 10px; padding-top: 8px; }
+  .contact { border-top: 1px solid var(--line); padding: 7px 0 3px; margin-top: 7px; font-size: 13px; }
+  .contact.empty { color: var(--muted); } .contact.empty button { margin-left: 6px; font-size: 12px; }
+  .chead { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; } .chead button { font-size: 11px; padding: 1px 7px; }
+  .ctitle { font-weight: 700; color: #374151; }
+  .cline { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 3px; } .cline a { color: var(--accent); }
+  .pref { font-size: 11px; font-weight: 700; color: #8a5a00; }
+  .mwc { color: #374151; } .mwc a { color: var(--accent); }
+  .tag.prefm { background: #fff4d6; color: #8a5a00; }
+  .cform { background: #f7f9fc; border: 1px solid var(--line); border-radius: 6px; padding: 8px; margin-top: 8px; }
+  .cform .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 6px; } .cform .row input { flex: 1; min-width: 130px; }
+  .ctitle-in { width: 100%; font-weight: 700; }
+  .prom-box { border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin-bottom: 12px; }
+  .prom-box.has-open { border-color: #9fd8b4; background: #f3fbf6; } .prom-box.late { border-color: #f1b8a8; background: #fff8f5; }
+  .promise { border-top: 1px solid var(--line); padding: 8px 0 4px; margin-top: 8px; font-size: 13px; } .promise .meta { color: var(--muted); font-size: 12px; }
+  .pbig { font-size: 16px; font-weight: 700; } .pbig span { font-size: 13px; font-weight: 400; color: #374151; margin-left: 6px; }
+  .pform { background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 8px; margin-top: 8px; }
+  .pform .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 4px 0; } .pform textarea { width: 100%; min-height: 48px; margin: 4px 0; }
+  .tag.ptag { background: #d9f2e3; color: #14532d; }
+  .disp-box { border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin-bottom: 12px; }
+  .disp-box.has-open { border-color: #f1b8a8; background: #fff8f5; }
+  .dispute { border-top: 1px solid var(--line); padding: 8px 0 4px; margin-top: 8px; font-size: 13px; } .dispute .meta { color: var(--muted); font-size: 12px; }
+  .dform { background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 8px; margin-top: 8px; }
+  .dform .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 4px 0; } .dform textarea { width: 100%; min-height: 56px; margin: 4px 0; }
+  .tag.dtag, .dtag { background: #fde4dc; color: #9a3412; }
+  .card.priority { border: 2px solid #e8796a; background: #fff8f6; } .card.priority h3 { color: #b42318; }
+  .tag.dtag-hot { background: #b42318; color: #fff; font-weight: 700; }
+  .needowner { display: block; margin-top: 3px; font-size: 11px; font-weight: 700; color: #b42318; }
+  .alertbar { background: #fdecea; border-bottom: 1px solid #f5b5ae; color: #7a1a12; padding: 8px 16px; font-size: 13px; }
+  .alertbar button { margin-left: 8px; }
+  .saving { outline: 2px solid #f0c36d; } .saved { outline: 2px solid #8fd19e; } .err { outline: 2px solid var(--danger); }
+  .page { padding: 16px; overflow: auto; flex: 1; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin-bottom: 16px; }
+  .card h3 { margin: 0 0 10px; font-size: 15px; }
+  .matrix th.rot { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; height: 210px; vertical-align: bottom; text-align: left; }
+  .matrix td { text-align: center; }
+  .matrix td:first-child { text-align: left; white-space: nowrap; }
+  .opt { display: flex; gap: 4px; margin-bottom: 3px; } .opt input[type=text] { width: 220px; } .opt input[type=color] { width: 36px; padding: 0; height: 24px; }
+  #drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(640px, 100vw); background: var(--panel); box-shadow: -6px 0 24px rgba(0,0,0,.15); transform: translateX(105%); transition: transform .18s; z-index: 20; display: flex; flex-direction: column; }
+  #drawer.open { transform: none; }
+  #drawer .dh { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; gap: 8px; align-items: start; }
+  #drawer .db { padding: 12px 16px; overflow: auto; flex: 1; }
+  #drawer table { width: 100%; margin-bottom: 14px; }
+  #drawer h4 { margin: 14px 0 6px; }
+  #toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: #1f2a44; color: #fff; padding: 8px 14px; border-radius: 6px; display: none; z-index: 30; max-width: 80vw; }
+  #importResult { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: none; align-items: center; justify-content: center; z-index: 25; }
+  #importResult .card { max-width: 900px; max-height: 80vh; overflow: auto; }
+  .ok { color: #146c2e; } .bad { color: var(--danger); } .skip { color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>AR Tracker</h1>
+  <button class="ghost" id="btnImport">⬆ Import AR report(s)</button>
+  <input type="file" id="file" accept=".xlsx,.xls,.xlsm" multiple hidden>
+  <button class="ghost" id="btnHistory" title="Load weekly notes, attribute columns and colour-coded statuses from your existing formatted tracking workbooks">⬆ Import notes history</button>
+  <input type="file" id="hfile" accept=".xlsx,.xlsm" multiple hidden>
+  <button class="ghost" id="btnReceipts" title="Update each customer's Last Known Payment Date and Amount from a receipts register (CSV or Excel)">⬆ Import receipts</button>
+  <input type="file" id="rfile" accept=".csv,.xlsx,.xlsm,.xls" multiple hidden>
+  <button class="ghost" id="btnSettings">⚙ Attributes &amp; companies</button>
+  <button class="ghost" id="btnUsers">👥 Users &amp; access</button>
+  <span class="sp"></span>
+  <span id="who"></span> <button class="ghost" id="btnOut">Sign out</button>
+</header>
+<div class="wrap">
+  <nav id="nav"></nav>
+  <main id="main"><div class="page"><div class="card">Import an AR aging report to get started.</div></div></main>
+</div>
+<div id="drawer"><div class="dh"><div style="flex:1" id="dTitle"></div><button onclick="closeDrawer()">✕</button></div><div class="db" id="dBody"></div></div>
+<div id="importResult"><div class="card"><h3>Import results</h3><div id="irBody"></div><p><button class="primary" onclick="$('#importResult').style.display='none'">Close</button></p></div></div>
+<div id="toast"></div>
+<div id="vizTip"></div>
+<div id="signin" style="position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;z-index:40">
+  <div class="card" style="width:min(420px,92vw)"><h3>Sign in to AR Tracker</h3><div id="siBody"></div></div>
+</div>
+<script>
+const $ = s => document.querySelector(s);
+const BK = [["b0","-0"],["b30","1-30"],["b60","31-60"],["b90","61-90"],["b182","91-182"],["b365","183-365"],["b366","366-"]];
+const TOPCLS = {"366-":"t366","183-365":"t365","91-182":"t182"};
+const money = v => (v == null || v === 0) ? "" : Number(v).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const money0 = v => Number(v || 0).toLocaleString(undefined, {style: "currency", currency: "USD", maximumFractionDigits: 0});
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmtDate = d => { if (!d) return ""; const [y,m,dd] = d.slice(0,10).split("-"); return `${+m}/${+dd}/${y}`; };
+const addDays = (d, n) => { const x = new Date(d + "T00:00:00"); x.setDate(x.getDate() + n); return x.toISOString().slice(0,10); };
+const store = { get(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+const user = () => S.me?.principal?.user || "";
+const TOKEN_KEY = "ar_token";
+const token = { get() { try { return sessionStorage.getItem(TOKEN_KEY); } catch { return null; } }, set(v) { try { v ? sessionStorage.setItem(TOKEN_KEY, v) : sessionStorage.removeItem(TOKEN_KEY); } catch {} } };
+
+async function api(url, opts = {}) {
+  const t = token.get();
+  const r = await fetch(url, {...opts, headers: {...(opts.headers || {}), ...(t ? {Authorization: "Bearer " + t} : {})}});
+  if (r.status === 401) { token.set(null); showSignIn("Your sign-in has expired. Please sign in again."); throw new Error("sign in required"); }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+const put = (url, body) => api(url, {method: "PUT", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.style.display = "block"; clearTimeout(t._h); t._h = setTimeout(() => t.style.display = "none", 3500); }
+
+const S = { companies: [], companyId: +store.get("co", 0) || null, view: "active", data: null, search: "", status: "", owner: "", topOnly: false, disputed: false, unassigned: false,
+            expandAll: false, expanded: new Set(), sort: null, page: "grid", due: false, stale: false,
+            kind: store.get("kind", "Note"), drawerId: null, openWeeks: new Set(), dq: "" };
+// Kinds people pick when logging by hand. "Promise to pay", "Payment plan" and "Dispute" entries are written by their
+// forms in the customer panel (so they come with the details); they are not offered here.
+const KINDS_ACT = ["Note", "Call", "Voicemail", "Email", "Text", "Site visit", "Payment received", "Escalation"];
+if (!KINDS_ACT.includes(S.kind)) S.kind = "Note";
+const kcls = k => "k-" + (k || "").toLowerCase().split(" ")[0];
+const daysBetween = (a, b) => Math.round((new Date(b + "T00:00:00") - new Date(a + "T00:00:00")) / 864e5);
+const mondayOf = d => { const x = new Date(d + "T00:00:00"); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x.toISOString().slice(0, 10); };
+// keep = true when editing an existing entry, so a kind no longer offered (e.g. one the app wrote) stays as it is.
+const kindOpts = (sel, keep = false) => (keep && sel && !KINDS_ACT.includes(sel) ? [sel, ...KINDS_ACT] : KINDS_ACT).map(k => `<option ${k === sel ? "selected" : ""}>${k}</option>`).join("");
+// Database timestamps (ISO with time zone) -> local "11/15/2026 5:08 PM".
+const fmtTs = s => { if (!s) return ""; const d = new Date(s); return isNaN(d) ? String(s) : d.toLocaleString([], {month: "numeric", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit"}); };
+function entryHtml(a, {clip = false, tools = false, history = false} = {}) {
+  const del = !!a.deleted_at;
+  return `<div class="ent ${clip ? "clip1" : ""} ${a.source === "import" ? "imp" : ""} ${del ? "deleted" : ""}" data-eid="${a.id}">` +
+    (del && S.me?.admin ? `<span class="acts" style="visibility:visible"><button data-restore="${a.id}">Restore</button></span>`
+      : tools ? `<span class="acts"><button data-edit="${a.id}">Edit</button> <button data-del="${a.id}">Delete</button></span>` : "") +
+    `<span class="kb ${kcls(a.kind)}">${esc(a.kind)}</span><span class="meta">${fmtDate(a.entry_date)}${a.author ? " · " + esc(a.author) : ""}` +
+    (a.edited_at ? (history ? ` · <a href="#" class="vlink" data-ver="${a.id}">edited – history</a>` : " · edited") : "") +
+    (del ? ` · <b class="bad">deleted by ${esc(a.deleted_by || "?")} ${fmtTs(a.deleted_at)}</b>` + (history ? ` · <a href="#" class="vlink" data-ver="${a.id}">history</a>` : "") : "") +
+    `</span>` + (clip ? " " : "<br>") + `<span class="bd">${esc(a.body)}</span>${history ? `<div class="vers" data-vbox="${a.id}"></div>` : ""}</div>`;
+}
+function groupByWeek(list) {
+  const g = new Map();
+  for (const a of list) { const w = mondayOf(a.entry_date); if (!g.has(w)) g.set(w, []); g.get(w).push(a); }
+  return [...g.entries()];
+}
+
+
+async function loadCompanies() {
+  S.companies = await api("/api/companies");
+  if (!S.companyId || !S.companies.some(c => c.id === S.companyId)) S.companyId = S.companies[0]?.id ?? null;
+  renderNav();
+}
+function renderNav() {
+  $("#nav").innerHTML = `<div class="co ${S.page === "mywork" ? "sel" : ""}" id="navMyWork"><b>★ My work</b><small>${esc(S.me?.display_name || "Follow-ups and accounts by owner")}</small></div>` +
+    `<div class="co ${S.page === "dashboard" ? "sel" : ""}" id="navDash"><b>📊 Dashboard</b><small>Week-over-week AR, collections and contacts</small></div>` +
+    (S.companies.length ? S.companies.map(c => `
+    <div class="co ${c.id === S.companyId && S.page === "grid" ? "sel" : ""}" data-id="${c.id}">
+      <b>${esc(c.code)} · ${esc(c.name)}</b>
+      <small>${money0(c.total)} · ${c.active} open · ${c.archived} paid off<br>as of ${fmtDate(c.as_of) || "—"}</small>
+      ${c.unassigned_disputes ? `<span class="needowner">⚠ ${c.unassigned_disputes} dispute${c.unassigned_disputes > 1 ? "s" : ""} need${c.unassigned_disputes > 1 ? "" : "s"} an owner</span>` : ""}
+    </div>`).join("") : `<div class="empty">No companies yet. Use “Import AR report(s)”.</div>`);
+  $("#navMyWork").onclick = () => { S.page = "mywork"; renderNav(); loadMyWork(); };
+  $("#navDash").onclick = () => { S.page = "dashboard"; renderNav(); loadDashboard(); };
+  $("#nav").querySelectorAll(".co[data-id]").forEach(el => el.onclick = () => { S.companyId = +el.dataset.id; store.set("co", S.companyId); S.owner = ""; S.page = "grid"; S.expanded.clear(); loadGrid(); renderNav(); });
+}
+
+async function loadGrid() {
+  if (!S.companyId) return;
+  S.data = await api(`/api/companies/${S.companyId}/grid?view=${S.view}`);
+  renderGrid();
+}
+
+function filtered() {
+  const d = S.data, q = S.search.toLowerCase();
+  const ownerAttr = d.attributes.find(a => a.name === "Account Owner");
+  const statusAttr = d.attributes.find(a => a.kind === "select" && a.name === "Status");
+  let rows = d.customers.filter(c => {
+    if (q && !(c.name.toLowerCase().includes(q) || c.ext_id.toLowerCase().includes(q) || c.activities.some(n => n.body.toLowerCase().includes(q)))) return false;
+    if (S.topOnly && !c.top25.length) return false;
+    if (S.due && !(c.follow_up && c.follow_up <= d.today)) return false;
+    if (S.stale && c.activities.length && daysBetween(c.activities[0].entry_date, d.today) < 7) return false;
+    if (S.disputed && !c.disputes) return false;
+    if (S.unassigned && !c.dispute_unassigned) return false;
+    if (S.status && statusAttr) { const v = c.attrs[statusAttr.id] || ""; if (S.status === "(none)" ? v : v !== S.status) return false; }
+    if (S.owner && ownerAttr) { const v = (c.attrs[ownerAttr.id] || "").trim().toLowerCase(); if (S.owner === "(none)" ? v : v !== S.owner.toLowerCase()) return false; }
+    return true;
+  });
+  if (S.sort) {
+    const {key, dir} = S.sort;
+    rows = rows.slice().sort((a, b) => {
+      const get = x => key.startsWith("a:") ? (x.attrs[key.slice(2)] ?? "") : key === "last_act" ? (x.activities[0]?.entry_date ?? "") : (x[key] ?? "");
+      const va = get(a), vb = get(b);
+      const na = parseFloat(va), nb = parseFloat(vb);
+      const c = (!isNaN(na) && !isNaN(nb) && typeof va !== "string") ? na - nb : String(va ?? "").localeCompare(String(vb ?? ""), undefined, {numeric: true});
+      return c * dir;
+    });
+  }
+  return rows;
+}
+
+function attrInput(a, c) {
+  const v = c.attrs[a.id] ?? "";
+  const data = `data-c="${c.id}" data-a="${a.id}"`;
+  // Account Owner: pick from the company's list (Company settings), never typed in.
+  if (a.name === "Account Owner") {
+    const list = S.data.account_owners || [];
+    if (!list.length && !v) return `<select ${data} disabled title="Add account owners under Company settings"><option>Set up in Company settings</option></select>`;
+    const onList = list.some(n => n.toLowerCase() === v.toLowerCase());
+    return `<select ${data}><option value=""></option>${list.map(n => `<option ${n.toLowerCase() === v.toLowerCase() ? "selected" : ""}>${esc(n)}</option>`).join("")}` +
+      (v && !onList ? `<option value="${esc(v)}" selected>${esc(v)} (not on list)</option>` : "") + `</select>`;
+  }
+  switch (a.kind) {
+    case "date": return `<input type="date" ${data} value="${esc(v)}">`;
+    case "number": case "money": return `<input type="number" step="0.01" ${data} value="${esc(v)}" style="text-align:right">`;
+    case "longtext": return `<textarea ${data} rows="1">${esc(v)}</textarea>`;
+    case "select": {
+      const opts = JSON.parse(a.options || "[]");
+      const known = opts.some(o => o.label === v);
+      return `<select ${data}><option value=""></option>${opts.map(o => `<option ${o.label === v ? "selected" : ""}>${esc(o.label)}</option>`).join("")}${v && !known ? `<option selected>${esc(v)}</option>` : ""}</select>`;
+    }
+    default: return `<input ${data} value="${esc(v)}">`;
+  }
+}
+function statusColor(c) {
+  const a = S.data.attributes.find(a => a.kind === "select" && a.name === "Status");
+  if (!a) return "";
+  const o = JSON.parse(a.options || "[]").find(o => o.label === c.attrs[a.id]);
+  return o ? `style="background:${esc(o.color)}"` : "";
+}
+// Activity cell: quick-add on top, this week's entries, older weeks collapsed into one line.
+function activityCell(c) {
+  const today = S.data.today, wk = mondayOf(today), list = c.activities;
+  const recent = list.filter(a => mondayOf(a.entry_date) >= wk);
+  const older = list.filter(a => mondayOf(a.entry_date) < wk);
+  const open = S.expandAll || S.expanded.has(c.id);
+  const shown = recent.length ? recent : older.slice(0, 1);
+  const rest = recent.length ? older : older.slice(1);
+  const nWeeks = new Set(rest.map(a => mondayOf(a.entry_date))).size;
+  return `<td class="act">
+    <div class="qa"><select data-qk="${c.id}">${kindOpts(S.kind)}</select><input data-qa="${c.id}" placeholder="Log activity, press Enter…"><button data-qs="${c.id}">Add</button></div>
+    ${shown.map(a => entryHtml(a, {clip: !open && !recent.length})).join("")}
+    ${rest.length ? (open
+      ? `<div class="prior-sum" data-x="${c.id}">▾ hide earlier</div>${groupByWeek(rest).map(([w, es]) => `<div class="wkh">Week of ${fmtDate(w)}</div>${es.map(a => entryHtml(a)).join("")}`).join("")}`
+      : `<div class="prior-sum" data-x="${c.id}">▸ ${rest.length} earlier entr${rest.length > 1 ? "ies" : "y"} over ${nWeeks} week${nWeeks > 1 ? "s" : ""}</div>`) : ""}
+  </td>`;
+}
+function ageCell(c) {
+  const last = c.activities[0];
+  if (!last) return `<td class="age bad">none</td>`;
+  const n = daysBetween(last.entry_date, S.data.today);
+  return `<td class="age ${n >= 14 ? "bad" : n >= 7 ? "warn" : ""}" title="${fmtDate(last.entry_date)}">${n <= 0 ? "today" : n + "d ago"}</td>`;
+}
+
+function renderGrid() {
+  const d = S.data, co = d.company, archived = d.view === "archived";
+  const rows = filtered();
+  const sums = BK.map(([k]) => rows.reduce((s, c) => s + (c[k] || 0), 0)), tot = rows.reduce((s, c) => s + (c.total || 0), 0);
+  const statusAttr = d.attributes.find(a => a.kind === "select" && a.name === "Status");
+  // Account Owner filter: only when this company uses the Account Owner attribute.
+  const ownerAttr = d.attributes.find(a => a.name === "Account Owner");
+  // Filter choices: the company's owner list, plus any older names still set on accounts.
+  const owners = ownerAttr ? [...new Map([...(d.account_owners || []), ...d.customers.map(c => (c.attrs[ownerAttr.id] || "").trim())].filter(Boolean).map(v => [v.toLowerCase(), v])).values()].sort((a, b) => a.localeCompare(b)) : [];
+  const nDue = d.customers.filter(c => c.follow_up && c.follow_up <= d.today).length;
+  const sortMark = k => S.sort?.key === k ? (S.sort.dir > 0 ? " ▲" : " ▼") : "";
+  const th = (k, label, cls = "") => `<th class="sortable ${cls}" data-s="${k}">${label}${sortMark(k)}</th>`;
+  const oldGrid = $(".grid"), scroll = oldGrid && S.page === "grid" ? [oldGrid.scrollLeft, oldGrid.scrollTop] : null;
+  S.page = "grid";
+
+  $("#main").innerHTML = `
+  <div class="toolbar">
+    <h2>${esc(co.code)} · ${esc(co.name)}</h2>
+    ${S.me?.admin ? `<button title="Rename" onclick="renameCompany()">✎</button>` : ""}
+    <span class="muted">${d.as_of ? "Report as of " + fmtDate(d.as_of) : "No imports yet"}${d.prev_as_of ? " · prior " + fmtDate(d.prev_as_of) : ""}</span>
+    <span style="flex:1"></span>
+    <div class="tabs">
+      <button class="${!archived ? "on" : ""}" onclick="setView('active')">Open accounts (${S.companies.find(c => c.id === co.id)?.active ?? ""})</button>
+      <button class="${archived ? "on" : ""}" onclick="setView('archived')">Paid off / archived (${S.companies.find(c => c.id === co.id)?.archived ?? ""})</button>
+    </div>
+    <button onclick="showImports()">Import history</button>
+    ${d.can_manage_settings ? `<button onclick="showCompanySettings()">⚙ Company settings</button>` : ""}
+  </div>
+  <div class="toolbar">
+    <input id="q" placeholder="Search name, ID or notes…" value="${esc(S.search)}" style="width:230px">
+    ${statusAttr ? `<select id="fStatus"><option value="">All statuses</option><option ${S.status === "(none)" ? "selected" : ""}>(none)</option>${JSON.parse(statusAttr.options).map(o => `<option ${S.status === o.label ? "selected" : ""}>${esc(o.label)}</option>`).join("")}</select>` : ""}
+    ${ownerAttr ? `<select id="fOwner"><option value="">All account owners</option><option ${S.owner === "(none)" ? "selected" : ""}>(none)</option>${owners.map(o => `<option ${S.owner.toLowerCase() === o.toLowerCase() ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>` : ""}
+    ${!archived ? `<label><input type="checkbox" id="fTop" ${S.topOnly ? "checked" : ""}> Top 25 only</label>` : ""}
+    <label><input type="checkbox" id="fDue" ${S.due ? "checked" : ""}> Follow-up due${nDue ? ` <b class="bad">(${nDue})</b>` : ""}</label>
+    <label><input type="checkbox" id="fStale" ${S.stale ? "checked" : ""}> No activity in 7+ days</label>
+    <label><input type="checkbox" id="fDisp" ${S.disputed ? "checked" : ""}> Disputed only${d.customers.some(c => c.disputes) ? ` (${d.customers.filter(c => c.disputes).length})` : ""}</label>
+    <label><input type="checkbox" id="fExp" ${S.expandAll ? "checked" : ""}> Expand all history</label>
+    ${S.sort ? `<button onclick="S.sort=null;renderGrid()">Reset sort</button>` : ""}
+    <span class="muted">${rows.length} shown</span>
+  </div>
+  ${(n => n ? `<div class="alertbar">⚠ <b>${n} open dispute${n > 1 ? "s have" : " has"} no Resolution Owner.</b> Assigning someone to follow up is the top priority.
+      <button id="fUnBtn">${S.unassigned ? "Show all accounts" : "Show them"}</button></div>` : "")(d.customers.reduce((s, c) => s + (c.dispute_unassigned || 0), 0))}
+  <div class="summary">
+    ${BK.map(([k, l], i) => `<span>${l}<b>${money0(sums[i])}</b></span>`).join("")}
+    <span>Total<b>${money0(tot)}</b></span>
+    <span style="margin-left:auto">Highlight: <span class="tag" style="background:var(--t366);color:#000">Top 25 366-</span><span class="tag" style="background:var(--t365);color:#000">183-365</span><span class="tag" style="background:var(--t182);color:#000">91-182</span><span class="tag" style="background:var(--ttot);color:#000">Total</span></span>
+  </div>
+  <div class="grid"><table>
+    <thead><tr>
+      ${th("ext_id", "Customer ID", "sticky1")}${th("name", "Customer name", "sticky2")}
+      ${BK.map(([k, l]) => th(k, l, "num")).join("")}${th("total", "Total", "num")}
+      ${archived ? th("archived_on", "Paid off on") : th("prev_total", "Prior total", "num")}
+      ${archived ? "" : `<th>Top 25 in</th>`}
+      ${th("follow_up", "Next follow-up")}${th("last_act", "Last activity")}<th>Activity</th>
+      ${d.attributes.map(a => th("a:" + a.id, esc(a.name))).join("")}
+    </tr></thead>
+    <tbody>${rows.map(c => {
+      const top = new Set(c.top25);
+      return `<tr>
+        <td class="sticky1">${esc(c.ext_id)}</td>
+        <td class="sticky2 name" ${statusColor(c)}><a data-d="${c.id}">${esc(c.name)}</a>${c.disputes ? (c.dispute_unassigned ? `<span class="tag dtag-hot" title="Open dispute with no Resolution Owner: ${esc(c.disputes)}">⚑ Disputed · no owner</span>`
+          : `<span class="tag dtag" title="Open dispute: ${esc(c.disputes)}${c.disputed_amount != null ? " · " + money0(c.disputed_amount) : ""}">⚑ Disputed</span>`) : ""}${promiseTag(c.promise, d.today)}${planTag(c.plan, d.today)}${c.first_seen === d.as_of && d.prev_as_of && !archived ? `<span class="tag">new</span>` : ""}</td>
+        ${BK.map(([k, l]) => `<td class="num ${top.has(l) && c[k] > 0 ? TOPCLS[l] : ""} ${c[k] < 0 ? "neg" : ""}">${money(c[k])}</td>`).join("")}
+        <td class="num ${top.has("Total") ? "ttot" : ""} ${c.total < 0 ? "neg" : ""}"><b>${money(c.total)}</b></td>
+        ${archived ? `<td>${fmtDate(c.archived_on)}</td>` : `<td class="num">${c.prev_total == null ? (d.prev_as_of ? "—" : "") : money(c.prev_total)}</td>`}
+        ${archived ? "" : `<td>${esc(c.top25.join(", "))}</td>`}
+        <td class="attr ${c.follow_up && c.follow_up <= d.today ? "due" : ""}"><input type="date" data-fu="${c.id}" value="${esc(c.follow_up || "")}"></td>
+        ${ageCell(c)}
+        ${activityCell(c)}
+        ${d.attributes.map(a => `<td class="attr">${attrInput(a, c)}</td>`).join("")}
+      </tr>`;
+    }).join("")}</tbody>
+  </table></div>`;
+  if (scroll) { $(".grid").scrollLeft = scroll[0]; $(".grid").scrollTop = scroll[1]; }
+
+  const q = $("#q"); q.oninput = () => { S.search = q.value; const pos = q.selectionStart; renderGrid(); const n = $("#q"); n.focus(); n.setSelectionRange(pos, pos); };
+  $("#fStatus") && ($("#fStatus").onchange = e => { S.status = e.target.value; renderGrid(); });
+  $("#fOwner") && ($("#fOwner").onchange = e => { S.owner = e.target.value; renderGrid(); });
+  $("#fTop") && ($("#fTop").onchange = e => { S.topOnly = e.target.checked; renderGrid(); });
+  $("#fExp").onchange = e => { S.expandAll = e.target.checked; renderGrid(); };
+  $("#fDue").onchange = e => { S.due = e.target.checked; renderGrid(); };
+  $("#fStale").onchange = e => { S.stale = e.target.checked; renderGrid(); };
+  $("#fDisp").onchange = e => { S.disputed = e.target.checked; renderGrid(); };
+  $("#fUnBtn") && ($("#fUnBtn").onclick = () => { S.unassigned = !S.unassigned; renderGrid(); });
+  document.querySelectorAll("[data-qk]").forEach(el => el.onchange = () => { S.kind = el.value; store.set("kind", el.value); });
+  document.querySelectorAll("[data-qa]").forEach(el => el.onkeydown = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); quickAdd(+el.dataset.qa); } });
+  document.querySelectorAll("[data-qs]").forEach(el => el.onclick = () => quickAdd(+el.dataset.qs));
+  document.querySelectorAll("[data-fu]").forEach(el => el.onchange = async () => {
+    await flash(el, put(`/api/customers/${el.dataset.fu}/follow_up`, {value: el.value}));
+    S.data.customers.find(c => c.id === +el.dataset.fu).follow_up = el.value || null;
+    el.parentElement.classList.toggle("due", !!el.value && el.value <= S.data.today);
+  });
+  document.querySelectorAll("th.sortable").forEach(el => el.onclick = () => {
+    const k = el.dataset.s; S.sort = S.sort?.key === k ? (S.sort.dir < 0 ? {key: k, dir: 1} : null) : {key: k, dir: -1}; renderGrid();
+  });
+  document.querySelectorAll("[data-x]").forEach(el => el.onclick = () => { const id = +el.dataset.x; S.expanded.has(id) ? S.expanded.delete(id) : S.expanded.add(id); renderGrid(); });
+  document.querySelectorAll("[data-d]").forEach(el => el.onclick = () => openDrawer(+el.dataset.d));
+  document.querySelectorAll("[data-a]").forEach(el => el.onchange = () => saveAttr(el));
+}
+
+async function quickAdd(cid) {
+  const inp = document.querySelector(`[data-qa="${cid}"]`), kind = document.querySelector(`[data-qk="${cid}"]`).value;
+  const body = inp.value.trim(); if (!body) { inp.focus(); return; }
+  inp.disabled = true;
+  try {
+    await flash(inp, api(`/api/customers/${cid}/activities`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({kind, body})}));
+    await loadGrid();
+    toast(`Logged ${kind.toLowerCase()} for ${S.data.customers.find(c => c.id === cid)?.name ?? "customer"}`);
+  } catch { inp.disabled = false; }
+}
+
+async function flash(el, p) {
+  el.classList.remove("saved", "err"); el.classList.add("saving");
+  try { await p; el.classList.replace("saving", "saved"); setTimeout(() => el.classList.remove("saved"), 1200); }
+  catch (e) { el.classList.replace("saving", "err"); toast("Save failed: " + e.message); throw e; }
+}
+async function saveAttr(el) {
+  const cid = +el.dataset.c, aid = el.dataset.a, value = el.value;
+  // Promise to Pay needs its details, and an open promise must be closed before the Status can change.
+  const attr0 = S.data.attributes.find(a => String(a.id) === aid);
+  if (attr0?.name === "Status") {
+    const c0 = S.data.customers.find(c => c.id === cid);
+    if (value === "Promise to Pay" || value === "Payment Plan" || c0.promise || c0.plan) {
+      el.value = c0.attrs[aid] || "";
+      toast(c0.promise ? "This account has an open promise to pay – mark it kept, broken or cancelled first"
+        : c0.plan ? "This account has an open payment plan – mark it completed, defaulted or cancelled first"
+        : value === "Promise to Pay" ? "Enter the promise details to set Promise to Pay" : "Enter the plan details to set Payment Plan");
+      S.openPromiseForm = !c0.promise && !c0.plan && value === "Promise to Pay";
+      S.openPlanForm = !c0.promise && !c0.plan && value === "Payment Plan";
+      openDrawer(cid);
+      return;
+    }
+  }
+  await flash(el, put(`/api/customers/${cid}/attrs/${aid}`, {value}));
+  const c = S.data.customers.find(c => c.id === cid);
+  if (value) c.attrs[aid] = value; else delete c.attrs[aid];
+  const a = S.data.attributes.find(a => String(a.id) === aid);
+  if (a?.name === "Status") { const td = el.closest("tr").querySelector("td.name"); const o = JSON.parse(a.options).find(o => o.label === value); td.style.background = o ? o.color : ""; }
+}
+
+function setView(v) { S.view = v; S.sort = null; S.expanded.clear(); loadGrid(); }
+async function renameCompany() {
+  const co = S.data.company, n = prompt("Display name for " + co.code, co.name);
+  if (!n) return;
+  await put(`/api/companies/${co.id}`, {name: n}); await loadCompanies(); loadGrid();
+}
+
+async function openDrawer(id, keepState = false) {
+  const d = await api(`/api/customers/${id}`), c = d.customer;
+  if (!keepState || S.drawerId !== id) {
+    S.drawerId = id; S.dq = ""; S.showDeleted = false;
+    // This week and last week start open; older weeks start collapsed.
+    S.openWeeks = new Set([mondayOf(d.today), mondayOf(addDays(d.today, -7))]);
+  }
+  S.drawerData = d;
+  $("#dTitle").innerHTML = `<b style="font-size:15px">${esc(c.name)}</b><br><span style="color:var(--muted)">${esc(c.ext_id)} · ${esc(c.code)} ${esc(c.company)} · ${c.status === "archived" ? "Paid off / archived " + fmtDate(c.archived_on) : "Open"} · first seen ${fmtDate(c.first_seen)}</span>`;
+  const latest = d.history[0];
+  $("#dBody").innerHTML = `
+    ${latest ? `<div class="summary" style="margin:-4px -16px 10px">${BK.map(([k, l]) => `<span>${l}<b>${money(latest[k]) || "–"}</b></span>`).join("")}<span>Total<b>${money(latest.total)}</b></span></div>` : ""}
+    <div id="contacts"></div>
+    <div id="prom"></div>
+    <div id="plan"></div>
+    <div class="addbox">
+      <div class="row">
+        <select id="aKind">${kindOpts(S.kind)}</select>
+        <label>Date <input type="date" id="aDate" value="${d.today}"></label>
+        <label>Next follow-up <input type="date" id="aFollow" value="${esc(c.follow_up || "")}"></label>
+      </div>
+      <textarea id="aBody" placeholder="What happened? (Ctrl+Enter to save)"></textarea>
+      <div class="row" style="margin:6px 0 0"><button class="primary" id="aSave">Log activity</button><span style="color:var(--muted);font-size:12px">Calls, voicemails, emails, texts and site visits also update “Most Recent Contact”.</span></div>
+    </div>
+    <div id="disp"></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <h4 style="margin:0">Activity history (${d.activities.filter(a => !a.deleted_at).length})</h4>
+      <input id="dq" placeholder="Search history…" value="${esc(S.dq)}" style="flex:1">
+      <button id="wkAll">Expand all</button><button id="wkNone">Collapse all</button>
+      ${d.activities.some(a => a.deleted_at) ? `<label><input type="checkbox" id="showDel" ${S.showDeleted ? "checked" : ""}> Show deleted (${d.activities.filter(a => a.deleted_at).length})</label>` : ""}
+    </div>
+    <div class="tl" id="tl"></div>
+    ${d.attrs.length ? `<h4>Attributes</h4><table>${d.attrs.map(a => `<tr><td>${esc(a.name)}</td><td><b>${esc(a.value)}</b></td><td style="color:var(--muted)">${esc(a.updated_by || "")} ${fmtTs(a.updated_at)}</td></tr>`).join("")}</table>` : ""}
+    ${d.changes.length ? `<details><summary><b>Change history</b> (${d.changes.length}) – every change to fields, follow-up and open / paid-off status</summary>
+      <table><tr><th>When</th><th>Who</th><th>Field</th><th>From</th><th>To</th></tr>
+      ${d.changes.map(ch => `<tr><td style="white-space:nowrap">${fmtTs(ch.changed_at)}</td><td>${esc(ch.changed_by)}</td><td>${esc(ch.label)}</td><td style="color:var(--muted)">${esc(ch.old_value ?? "–")}</td><td>${esc(ch.new_value ?? "(cleared)")}</td></tr>`).join("")}</table></details>` : ""}
+    <h4>Balance by report</h4>
+    <table><tr><th>As of</th>${BK.map(([, l]) => `<th class="num">${l}</th>`).join("")}<th class="num">Total</th></tr>
+      ${d.history.map(h => `<tr><td>${fmtDate(h.as_of)}</td>${BK.map(([k]) => `<td class="num">${money(h[k])}</td>`).join("")}<td class="num"><b>${money(h.total)}</b></td></tr>`).join("")}</table>
+    <h4>Report lines (latest report)</h4>
+    <table><tr><th>GL posting date</th><th>Report bucket</th><th>Aged into</th><th class="num">Amount</th></tr>
+      ${d.lines.map(l => `<tr><td>${fmtDate(l.posting_date)}</td><td>${esc(l.source_bucket)}</td><td>${esc(l.bucket)}</td><td class="num">${money(l.amount)}</td></tr>`).join("")}</table>`;
+  renderTimeline();
+  renderDisputes();
+  renderContacts();
+  renderPromises(S.openPromiseForm ? "new" : null);
+  S.openPromiseForm = false;
+  renderPlans(S.openPlanForm ? "new" : null);
+  S.openPlanForm = false;
+  $("#aKind").onchange = e => { S.kind = e.target.value; store.set("kind", S.kind); };
+  $("#aSave").onclick = saveDrawerActivity;
+  $("#aBody").onkeydown = e => { if (e.key === "Enter" && e.ctrlKey) saveDrawerActivity(); };
+  $("#dq").oninput = e => { S.dq = e.target.value; renderTimeline(); };
+  $("#wkAll").onclick = () => { groupByWeek(d.activities).forEach(([w]) => S.openWeeks.add(w)); renderTimeline(); };
+  $("#wkNone").onclick = () => { S.openWeeks.clear(); renderTimeline(); };
+  $("#showDel") && ($("#showDel").onchange = e => { S.showDeleted = e.target.checked; renderTimeline(); });
+  $("#drawer").classList.add("open");
+  if (!keepState) setTimeout(() => $("#aBody")?.focus(), 200);
+}
+
+// Contacts: the AP Contact first, then additional contacts with their own title. `editing` = contact id, "ap" or "new".
+function renderContacts(editing = null) {
+  const d = S.drawerData, list = d.contacts || [], ap = list.find(c => c.is_ap), others = list.filter(c => !c.is_ap);
+  const methodOpts = sel => `<option value="">–</option>` + d.contact_methods.map(m => `<option ${m === sel ? "selected" : ""}>${esc(m)}</option>`).join("");
+  const form = (c, isAp) => `<div class="cform" data-cid="${c ? c.id : ""}" data-ap="${isAp ? 1 : ""}">
+      ${isAp ? `<div class="ctitle">AP Contact</div>` : `<input class="kT ctitle-in" value="${esc(c?.title || "")}" placeholder="Contact title">`}
+      <div class="row"><input class="kN" value="${esc(c?.name || "")}" placeholder="Name">
+        <input class="kP" value="${esc(c?.phone || "")}" placeholder="Phone">
+        <input class="kE" type="email" value="${esc(c?.email || "")}" placeholder="Email"></div>
+      <div class="row"><label>Preferred contact method <select class="kM">${methodOpts(c?.preferred_method)}</select></label>
+        <span style="flex:1"></span><button class="primary kSave">Save</button> <button class="kCancel">Cancel</button></div></div>`;
+  const pref = (c, m) => c.preferred_method === m ? ` <span class="pref" title="Preferred contact method">★ preferred</span>` : "";
+  const card = c => `<div class="contact">
+      <div class="chead"><span class="ctitle">${esc(c.title || "Contact")}</span>${c.name ? ` · <b>${esc(c.name)}</b>` : ""}
+        ${c.preferred_method ? `<span class="tag prefm">Prefers ${esc(c.preferred_method)}</span>` : ""}
+        <span style="flex:1"></span><button data-kedit="${c.id}">Edit</button>${c.is_ap ? "" : ` <button data-kdel="${c.id}">Remove</button>`}</div>
+      <div class="cline">${c.phone ? `📞 <a href="tel:${esc(c.phone.replace(/[^0-9+]/g, ""))}">${esc(c.phone)}</a>${pref(c, "Phone")}${pref(c, "Text")}` : ""}
+        ${c.email ? `<span>✉ <a href="mailto:${esc(c.email)}">${esc(c.email)}</a>${pref(c, "Email")}</span>` : ""}
+        ${!c.phone && !c.email ? `<span class="muted">No phone or email</span>` : ""}</div></div>`;
+  // The main AP Contact stands on its own; everyone else sits under "Additional Contacts".
+  $("#contacts").innerHTML = `<div class="contacts-box">
+    <div class="ap-slot">${editing === "ap" ? form(ap, true) : ap ? (editing === ap.id ? form(ap, true) : card(ap))
+      : `<div class="contact empty"><span class="ctitle">AP Contact</span> <span class="muted">not set</span> <button data-kedit="ap">Add AP contact</button></div>`}</div>
+    <div class="addl-head"><h4 style="margin:0;flex:1">Additional Contacts${others.length ? ` (${others.length})` : ""}</h4>${editing ? "" : `<button id="kAdd">+ Add contact</button>`}</div>
+    ${others.map(c => editing === c.id ? form(c, false) : card(c)).join("")}
+    ${editing === "new" ? form(null, false) : ""}
+    ${!others.length && editing !== "new" ? `<p class="muted" style="margin:4px 0 0;font-size:12px">None yet.</p>` : ""}
+  </div>`;
+  const box = $("#contacts");
+  box.querySelector("#kAdd") && (box.querySelector("#kAdd").onclick = () => { renderContacts("new"); box.querySelector(".kT")?.focus(); });
+  box.querySelectorAll("[data-kedit]").forEach(b => b.onclick = () => renderContacts(b.dataset.kedit === "ap" ? "ap" : +b.dataset.kedit));
+  box.querySelectorAll(".kCancel").forEach(b => b.onclick = () => renderContacts());
+  box.querySelectorAll("[data-kdel]").forEach(b => b.onclick = async () => {
+    const c = others.find(x => x.id === +b.dataset.kdel);
+    if (!confirm(`Remove ${c.title || "this contact"}${c.name ? " (" + c.name + ")" : ""}? The details stay in the change history.`)) return;
+    try { await api(`/api/contacts/${c.id}`, {method: "DELETE"}); toast("Contact removed"); refreshAfterChange(); } catch (e) { toast(e.message); }
+  });
+  box.querySelectorAll(".kSave").forEach(b => b.onclick = async () => {
+    const f = b.closest(".cform"), id = f.dataset.cid;
+    const body = {is_ap: !!f.dataset.ap, title: f.querySelector(".kT")?.value, name: f.querySelector(".kN").value,
+      phone: f.querySelector(".kP").value, email: f.querySelector(".kE").value, preferred_method: f.querySelector(".kM").value};
+    try {
+      if (id) await put(`/api/contacts/${id}`, body);
+      else await api(`/api/customers/${S.drawerId}/contacts`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+      toast("Contact saved"); refreshAfterChange();
+    } catch (e) { toast(e.message); }
+  });
+}
+
+// Tag for an account with an open promise: green until the expected date passes, then red.
+function promiseTag(pr, today) {
+  if (!pr) return "";
+  const late = pr.expected_date < today;
+  return ` <span class="tag ${late ? "dtag-hot" : "ptag"}" title="Promise to pay via ${esc(pr.method)}">${late ? "Promise overdue · " : "Promised "}${money0(pr.amount)} by ${fmtDate(pr.expected_date)}</span>`;
+}
+
+// Promise to pay: one open promise at a time (amount, form of payment, expected date); closing restores the Status.
+function renderPromises(form = null) {
+  const d = S.drawerData, list = d.promises || [], open = list.find(x => x.status === "open"), past = list.filter(x => x.status !== "open");
+  const today = d.today, bal = d.history[0]?.total;
+  const overdue = x => x.status === "open" && x.expected_date < today;
+  const methodOpts = sel => `<option value="">Choose…</option>` + d.payment_methods.map(m => `<option ${m === sel ? "selected" : ""}>${esc(m)}</option>`).join("");
+  const formHtml = x => `<div class="pform">
+      <div class="row"><label>Amount promised <input class="pA" type="number" step="0.01" min="0.01" style="width:130px" value="${x ? x.amount : (bal > 0 ? bal : "")}" required></label>
+        <label>Form of payment <select class="pM">${methodOpts(x?.payment_method)}</select></label>
+        <label>Expected payment date <input class="pD" type="date" value="${esc(x?.expected_date || "")}" min="${x ? "" : today}"></label></div>
+      <textarea class="pN" placeholder="Notes (optional) – who promised, check number, etc.">${esc(x?.notes || "")}</textarea>
+      <div class="row"><button class="primary pSave" data-id="${x ? x.id : ""}">${x ? "Save changes" : "Save promise – set Promise to Pay"}</button> <button class="pCancel">Cancel</button></div></div>`;
+  const label = {kept: "✓ Kept", broken: "✗ Broken", cancelled: "Cancelled"};
+  $("#prom").innerHTML = `<div class="prom-box ${open ? (overdue(open) ? "late" : "has-open") : ""}">
+    <div style="display:flex;align-items:center;gap:8px"><h4 style="margin:0;flex:1">Promise to Pay</h4>
+      ${form || open ? "" : `<button id="pNew">＄ Record promise to pay</button>`}</div>
+    ${form === "new" ? `<p class="muted" style="margin:6px 0 0;font-size:12px">All three fields are required to set the account to Promise to Pay.</p>${formHtml(null)}` : ""}
+    ${open ? (form === open.id ? formHtml(open) : `<div class="promise">
+      <div class="pbig">${money(open.amount)} <span>via ${esc(open.payment_method)}</span> <span>by <b>${fmtDate(open.expected_date)}</b></span>
+        ${overdue(open) ? `<span class="tag dtag-hot">overdue ${daysBetween(open.expected_date, today)}d</span>` : open.expected_date === today ? `<span class="tag prefm">due today</span>` : ""}</div>
+      ${open.notes ? `<div style="white-space:pre-wrap;margin:4px 0">${esc(open.notes)}</div>` : ""}
+      <div class="meta">Recorded ${fmtDate(open.created_on)} by ${esc(open.created_by || "?")}</div>
+      <div class="pclose" style="margin-top:6px"><button class="primary" data-pclose="kept">✓ Kept</button> <button data-pclose="broken">✗ Broken</button>
+        <button data-pclose="cancelled">Cancel promise</button> <button data-pedit="${open.id}">Edit</button></div></div>`) : ""}
+    ${!open && form !== "new" ? `<p class="muted" style="margin:4px 0 0;font-size:12px">No open promise.</p>` : ""}
+    ${past.length ? `<details><summary style="cursor:pointer;color:var(--muted);font-size:12px">${past.length} earlier promise${past.length > 1 ? "s" : ""}</summary>
+      ${past.map(x => `<div class="promise past"><b>${label[x.status] || esc(x.status)}</b> · ${money(x.amount)} via ${esc(x.payment_method)} by ${fmtDate(x.expected_date)}
+        <span class="meta"> · recorded ${fmtDate(x.created_on)} by ${esc(x.created_by || "?")} · closed ${fmtDate(x.closed_on)} by ${esc(x.closed_by || "?")}</span>
+        ${x.close_note ? `<div style="white-space:pre-wrap">${esc(x.close_note)}</div>` : ""}</div>`).join("")}</details>` : ""}
+  </div>`;
+  const box = $("#prom");
+  box.querySelector("#pNew") && (box.querySelector("#pNew").onclick = () => renderPromises("new"));
+  box.querySelectorAll(".pCancel").forEach(b => b.onclick = () => renderPromises());
+  box.querySelectorAll("[data-pedit]").forEach(b => b.onclick = () => renderPromises(+b.dataset.pedit));
+  box.querySelectorAll(".pSave").forEach(b => b.onclick = async () => {
+    const f = b.closest(".pform"), a = f.querySelector(".pA").value;
+    const body = {amount: a === "" ? null : +a, payment_method: f.querySelector(".pM").value, expected_date: f.querySelector(".pD").value, notes: f.querySelector(".pN").value};
+    try {
+      if (b.dataset.id) await put(`/api/promises/${b.dataset.id}`, body);
+      else await api(`/api/customers/${S.drawerId}/promises`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+      toast(b.dataset.id ? "Promise updated" : "Promise recorded – status set to Promise to Pay"); refreshAfterChange();
+    } catch (e) { toast(e.message); }
+  });
+  box.querySelectorAll("[data-pclose]").forEach(b => b.onclick = async () => {
+    const outcome = b.dataset.pclose, words = {kept: "kept", broken: "broken", cancelled: "cancelled"}[outcome];
+    const note = prompt(`Mark this promise as ${words}? Add a note (optional):`, "");
+    if (note === null) return;
+    try { await api(`/api/promises/${open.id}/close`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({outcome, note})});
+      toast(`Promise marked ${words}`); refreshAfterChange(); } catch (e) { toast(e.message); }
+  });
+}
+
+// Tag for an account with an open payment plan: next payment date; red once the schedule has ended without being closed.
+function planTag(pl, today) {
+  if (!pl) return "";
+  const per = {Weekly: "wk", "Bi-weekly": "2 wks", Monthly: "mo"}[pl.frequency] || pl.frequency;
+  return pl.next_due
+    ? ` <span class="tag ptag" title="Payment plan: ${money(pl.total)} agreed via ${esc(pl.method)}, last payment ${fmtDate(pl.last_due)}">Plan ${money0(pl.each)}/${per} · next ${fmtDate(pl.next_due)}</span>`
+    : ` <span class="tag dtag-hot" title="The schedule ended ${fmtDate(pl.last_due)} – mark the plan completed or defaulted">Plan ended ${fmtDate(pl.last_due)}</span>`;
+}
+
+// Payment plan: one open plan at a time (amount agreed, each payment, frequency, form of payment, first date); closing restores the Status.
+function renderPlans(form = null) {
+  const d = S.drawerData, list = d.plans || [], open = list.find(x => x.status === "open"), past = list.filter(x => x.status !== "open");
+  const today = d.today, bal = d.history[0]?.total;
+  const opts = (arr, sel) => `<option value="">Choose…</option>` + arr.map(m => `<option ${m === sel ? "selected" : ""}>${esc(m)}</option>`).join("");
+  const formHtml = x => `<div class="pform">
+      <div class="row"><label>Amount agreed to <input class="lT" type="number" step="0.01" min="0.01" style="width:120px" value="${x ? x.total_amount : (bal > 0 ? bal : "")}"></label>
+        <label>Each payment <input class="lE" type="number" step="0.01" min="0.01" style="width:110px" value="${x ? x.installment_amount : ""}"></label>
+        <label>Frequency <select class="lF">${opts(d.plan_frequencies, x?.frequency)}</select></label></div>
+      <div class="row"><label>Form of payment <select class="lM">${opts(d.payment_methods, x?.payment_method)}</select></label>
+        <label>First payment date <input class="lD" type="date" value="${esc(x?.first_due_date || "")}"></label>
+        <span class="lSum muted" style="font-size:12px"></span></div>
+      <textarea class="lN" placeholder="Notes (optional) – who agreed, terms, etc.">${esc(x?.notes || "")}</textarea>
+      <div class="row"><button class="primary lSave" data-id="${x ? x.id : ""}">${x ? "Save changes" : "Save plan – set Payment Plan"}</button> <button class="lCancel">Cancel</button></div></div>`;
+  const label = {completed: "✓ Completed", defaulted: "✗ Defaulted", cancelled: "Cancelled"};
+  const terms = x => `${money(x.installment_amount)} ${esc(x.frequency.toLowerCase())} × ${x.payments} via ${esc(x.payment_method)}`;
+  $("#plan").innerHTML = `<div class="prom-box ${open ? (open.next_due_date ? "has-open" : "late") : ""}">
+    <div style="display:flex;align-items:center;gap:8px"><h4 style="margin:0;flex:1">Payment Plan</h4>
+      ${form || open ? "" : `<button id="lNew">📅 Set up payment plan</button>`}</div>
+    ${form === "new" ? `<p class="muted" style="margin:6px 0 0;font-size:12px">All fields except notes are required to set the account to Payment Plan.</p>${formHtml(null)}` : ""}
+    ${open ? (form === open.id ? formHtml(open) : `<div class="promise">
+      <div class="pbig">${money(open.total_amount)} <span>agreed · ${terms(open)}</span></div>
+      <div>${open.next_due_date ? `Next payment <b>${fmtDate(open.next_due_date)}</b>${open.next_due_date === today ? ` <span class="tag prefm">due today</span>` : ""}` : `<span class="tag dtag-hot">schedule ended</span>`}
+        · first ${fmtDate(open.first_due_date)} · last ${fmtDate(open.last_due_date)}</div>
+      ${open.notes ? `<div style="white-space:pre-wrap;margin:4px 0">${esc(open.notes)}</div>` : ""}
+      <div class="meta">Set up ${fmtDate(open.created_on)} by ${esc(open.created_by || "?")}</div>
+      <div style="margin-top:6px"><button class="primary" data-lclose="completed">✓ Completed</button> <button data-lclose="defaulted">✗ Defaulted</button>
+        <button data-lclose="cancelled">Cancel plan</button> <button data-ledit="${open.id}">Edit</button></div></div>`) : ""}
+    ${!open && form !== "new" ? `<p class="muted" style="margin:4px 0 0;font-size:12px">No open payment plan.</p>` : ""}
+    ${past.length ? `<details><summary style="cursor:pointer;color:var(--muted);font-size:12px">${past.length} earlier plan${past.length > 1 ? "s" : ""}</summary>
+      ${past.map(x => `<div class="promise past"><b>${label[x.status] || esc(x.status)}</b> · ${money(x.total_amount)} agreed · ${terms(x)} from ${fmtDate(x.first_due_date)}
+        <span class="meta"> · set up ${fmtDate(x.created_on)} by ${esc(x.created_by || "?")} · closed ${fmtDate(x.closed_on)} by ${esc(x.closed_by || "?")}</span>
+        ${x.close_note ? `<div style="white-space:pre-wrap">${esc(x.close_note)}</div>` : ""}</div>`).join("")}</details>` : ""}
+  </div>`;
+  const box = $("#plan");
+  // Live summary: number of payments and the size of the last one.
+  box.querySelectorAll(".pform").forEach(f => {
+    const upd = () => { const t = +f.querySelector(".lT").value, e = +f.querySelector(".lE").value, s = f.querySelector(".lSum");
+      if (!(t > 0 && e > 0)) { s.textContent = ""; return; }
+      if (e > t) { s.textContent = "Each payment is more than the amount agreed"; return; }
+      const n = Math.ceil(t / e - 1e-9), last = Math.round((t - e * (n - 1)) * 100) / 100;
+      s.textContent = `${n} payment${n > 1 ? "s" : ""}${last !== e ? ` (last one ${money(last)})` : ""}`; };
+    f.querySelectorAll(".lT,.lE").forEach(i => i.oninput = upd); upd();
+  });
+  box.querySelector("#lNew") && (box.querySelector("#lNew").onclick = () => renderPlans("new"));
+  box.querySelectorAll(".lCancel").forEach(b => b.onclick = () => renderPlans());
+  box.querySelectorAll("[data-ledit]").forEach(b => b.onclick = () => renderPlans(+b.dataset.ledit));
+  box.querySelectorAll(".lSave").forEach(b => b.onclick = async () => {
+    const f = b.closest(".pform"), num = s => { const v = f.querySelector(s).value; return v === "" ? null : +v; };
+    const body = {total_amount: num(".lT"), installment_amount: num(".lE"), frequency: f.querySelector(".lF").value,
+      payment_method: f.querySelector(".lM").value, first_due_date: f.querySelector(".lD").value, notes: f.querySelector(".lN").value};
+    try {
+      if (b.dataset.id) await put(`/api/plans/${b.dataset.id}`, body);
+      else await api(`/api/customers/${S.drawerId}/plans`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+      toast(b.dataset.id ? "Payment plan updated" : "Payment plan saved – status set to Payment Plan"); refreshAfterChange();
+    } catch (e) { toast(e.message); }
+  });
+  box.querySelectorAll("[data-lclose]").forEach(b => b.onclick = async () => {
+    const outcome = b.dataset.lclose;
+    const note = prompt(`Mark this payment plan as ${outcome}? Add a note (optional):`, "");
+    if (note === null) return;
+    try { await api(`/api/plans/${open.id}/close`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({outcome, note})});
+      toast(`Payment plan marked ${outcome}`); refreshAfterChange(); } catch (e) { toast(e.message); }
+  });
+}
+
+// Disputes on this account: open ones first (resolve / edit), resolved ones below (admins can reopen).
+function renderDisputes(form = null) {
+  const d = S.drawerData, list = d.disputes || [], open = list.filter(x => x.status === "open"), done = list.filter(x => x.status !== "open");
+  const bal = d.history[0]?.total;
+  const catOpts = sel => d.dispute_categories.map(c => `<option ${c === sel ? "selected" : ""}>${esc(c)}</option>`).join("");
+  const formHtml = x => `<div class="dform">
+      <div class="row"><label>Category <select class="dC"><option value="">Choose…</option>${catOpts(x?.category)}</select></label>
+        <label>Disputed amount <input class="dA" type="number" step="0.01" min="0" style="width:120px" value="${x ? (x.amount ?? "") : (bal > 0 ? bal : "")}"></label>
+        <label>Invoice / reference <input class="dR" style="width:140px" value="${esc(x?.reference || "")}" placeholder="optional"></label></div>
+      <div class="row"><label style="flex:1">Resolution Owner <input class="dOwn" list="dOwners" style="width:100%" value="${esc(x?.resolution_owner || "")}" placeholder="Name of employee who is following up on dispute"></label>
+        <datalist id="dOwners">${(d.account_owners || []).map(o => `<option value="${esc(o)}">`).join("")}</datalist></div>
+      <textarea class="dD" placeholder="What is the customer disputing? (required)">${esc(x?.description || "")}</textarea>
+      <div class="row"><button class="primary dSave" data-id="${x ? x.id : ""}">${x ? "Save changes" : "Open dispute"}</button> <button class="dCancel">Cancel</button></div></div>`;
+  const amt = x => x.amount != null ? ` · ${money0(x.amount)}` : "";
+  $("#disp").innerHTML = `<div class="disp-box ${open.length ? "has-open" : ""}">
+    <div style="display:flex;align-items:center;gap:8px"><h4 style="margin:0;flex:1">Disputes ${open.length ? `<span class="tag dtag">${open.length} open</span>` : ""}</h4>
+      ${form ? "" : `<button id="dNew">⚑ Mark as disputed</button>`}</div>
+    ${form === "new" ? formHtml(null) : ""}
+    ${open.map(x => form === x.id ? formHtml(x) : `<div class="dispute open">
+      <b>${esc(x.category)}</b>${amt(x)}${x.reference ? ` · ${esc(x.reference)}` : ""}
+      <span class="meta"> · opened ${fmtDate(x.opened_on)} by ${esc(x.opened_by || "?")}</span>
+      <div style="margin-top:3px"><b>Resolution Owner:</b> ${x.resolution_owner ? esc(x.resolution_owner) : `<span class="bad">not assigned</span>`}</div>
+      <div style="white-space:pre-wrap;margin:4px 0">${esc(x.description)}</div>
+      <div class="dres" data-rbox="${x.id}"><button data-dresolve="${x.id}" class="primary">Resolve…</button> <button data-dedit="${x.id}">Edit</button></div></div>`).join("")}
+    ${done.length ? `<details><summary style="cursor:pointer;color:var(--muted);font-size:12px">${done.length} resolved dispute${done.length > 1 ? "s" : ""}</summary>
+      ${done.map(x => `<div class="dispute"><b>${esc(x.category)}</b>${amt(x)}${x.reference ? ` · ${esc(x.reference)}` : ""}
+        <span class="meta"> · opened ${fmtDate(x.opened_on)} by ${esc(x.opened_by || "?")} · resolved ${fmtDate(x.resolved_on)} by ${esc(x.resolved_by || "?")}</span>
+        ${x.resolution_owner ? `<div style="margin-top:3px"><b>Resolution Owner:</b> ${esc(x.resolution_owner)}</div>` : ""}
+        <div style="white-space:pre-wrap;margin:4px 0">${esc(x.description)}</div>
+        <div><b>Outcome:</b> ${esc(x.outcome || "")}${x.resolution ? ` – <span style="white-space:pre-wrap">${esc(x.resolution)}</span>` : ""}
+        ${S.me?.admin ? ` <button data-dreopen="${x.id}" style="font-size:11px">Reopen</button>` : ""}</div></div>`).join("")}</details>` : ""}
+    ${!list.length && !form ? `<p class="muted" style="margin:4px 0 0;font-size:12px">No disputes on this account.</p>` : ""}
+  </div>`;
+  const box = $("#disp");
+  box.querySelector("#dNew") && (box.querySelector("#dNew").onclick = () => renderDisputes("new"));
+  box.querySelectorAll(".dCancel").forEach(b => b.onclick = () => renderDisputes());
+  box.querySelectorAll("[data-dedit]").forEach(b => b.onclick = () => renderDisputes(+b.dataset.dedit));
+  box.querySelectorAll(".dSave").forEach(b => b.onclick = async () => {
+    const f = b.closest(".dform"), a = f.querySelector(".dA").value;
+    const body = {category: f.querySelector(".dC").value, amount: a === "" ? null : +a, reference: f.querySelector(".dR").value,
+      description: f.querySelector(".dD").value, resolution_owner: f.querySelector(".dOwn").value};
+    try {
+      if (b.dataset.id) await put(`/api/disputes/${b.dataset.id}`, body);
+      else await api(`/api/customers/${S.drawerId}/disputes`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+      toast(b.dataset.id ? "Dispute updated" : "Account marked as disputed"); refreshAfterChange();
+    } catch (e) { toast(e.message); }
+  });
+  box.querySelectorAll("[data-dresolve]").forEach(b => b.onclick = () => {
+    const id = b.dataset.dresolve, rb = box.querySelector(`[data-rbox="${id}"]`);
+    rb.innerHTML = `<div class="dform"><label>Outcome <select class="dO"><option value="">Choose…</option>${d.dispute_outcomes.map(o => `<option>${esc(o)}</option>`).join("")}</select></label>
+      <textarea class="dN" placeholder="Resolution notes (e.g. credit memo number, what was agreed)"></textarea>
+      <button class="primary dDo">Resolve dispute</button> <button class="dCancel">Cancel</button></div>`;
+    rb.querySelector(".dCancel").onclick = () => renderDisputes();
+    rb.querySelector(".dDo").onclick = async () => {
+      try { await api(`/api/disputes/${id}/resolve`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({outcome: rb.querySelector(".dO").value, resolution: rb.querySelector(".dN").value})});
+        toast("Dispute resolved"); refreshAfterChange(); } catch (e) { toast(e.message); }
+    };
+  });
+  box.querySelectorAll("[data-dreopen]").forEach(b => b.onclick = async () => {
+    try { await api(`/api/disputes/${b.dataset.dreopen}/reopen`, {method: "POST"}); toast("Dispute reopened"); refreshAfterChange(); } catch (e) { toast(e.message); }
+  });
+}
+
+function renderTimeline() {
+  const d = S.drawerData, q = S.dq.toLowerCase();
+  const visible = d.activities.filter(a => S.showDeleted || !a.deleted_at);
+  const list = q ? visible.filter(a => (a.body + " " + a.kind + " " + (a.author || "")).toLowerCase().includes(q)) : visible;
+  $("#tl").innerHTML = list.length ? groupByWeek(list).map(([w, es]) => {
+    const open = q || S.openWeeks.has(w);
+    return `<div class="wkh" data-wk="${w}">${open ? "▾" : "▸"} Week of ${fmtDate(w)} · ${es.length} entr${es.length > 1 ? "ies" : "y"}${open ? "" : " — " + esc(es[0].body.slice(0, 80))}</div>
+      ${open ? es.map(a => entryHtml(a, {tools: S.me?.admin || a.author === user(), history: true})).join("") : ""}`;
+  }).join("") : `<p style="color:var(--muted)">${q ? "No matches." : "No activity logged yet."}</p>`;
+  $("#tl").querySelectorAll("[data-wk]").forEach(el => el.onclick = () => { const w = el.dataset.wk; S.openWeeks.has(w) ? S.openWeeks.delete(w) : S.openWeeks.add(w); renderTimeline(); });
+  $("#tl").querySelectorAll("[data-del]").forEach(el => el.onclick = async () => {
+    if (!confirm("Delete this entry? It will be hidden, but kept with its full history (an AR admin can restore it).")) return;
+    await api(`/api/activities/${el.dataset.del}`, {method: "DELETE"}); refreshAfterChange();
+  });
+  $("#tl").querySelectorAll("[data-restore]").forEach(el => el.onclick = async () => {
+    await api(`/api/activities/${el.dataset.restore}/restore`, {method: "POST"}); toast("Entry restored"); refreshAfterChange();
+  });
+  $("#tl").querySelectorAll("[data-ver]").forEach(el => el.onclick = async e => {
+    e.preventDefault();
+    const box = $("#tl").querySelector(`[data-vbox="${el.dataset.ver}"]`);
+    if (box.innerHTML) { box.innerHTML = ""; return; }
+    const vs = await api(`/api/activities/${el.dataset.ver}/versions`);
+    box.innerHTML = vs.map((v, i) => `<div class="v"><span class="meta">${i === 0 ? "Original" : esc(v.change[0].toUpperCase() + v.change.slice(1))} · ${esc(v.changed_by)} · ${fmtTs(v.changed_at)}</span>` +
+      (v.change === "deleted" || v.change === "restored" ? "" : `<br><span class="kb ${kcls(v.kind)}">${esc(v.kind)}</span> ${fmtDate(v.entry_date)} – <span style="white-space:pre-wrap">${esc(v.body)}</span>`) + `</div>`).join("");
+  });
+  $("#tl").querySelectorAll("[data-edit]").forEach(el => el.onclick = () => {
+    const a = d.activities.find(x => x.id === +el.dataset.edit), box = el.closest(".ent");
+    box.innerHTML = `<div class="row" style="display:flex;gap:6px;margin-bottom:4px"><select class="eK">${kindOpts(a.kind, true)}</select><input type="date" class="eD" value="${a.entry_date}"></div>
+      <textarea class="eB" style="width:100%;min-height:60px">${esc(a.body)}</textarea>
+      <button class="primary eS">Save</button> <button class="eC">Cancel</button>`;
+    box.querySelector(".eC").onclick = renderTimeline;
+    box.querySelector(".eS").onclick = async () => {
+      try { await put(`/api/activities/${a.id}`, {kind: box.querySelector(".eK").value, entry_date: box.querySelector(".eD").value, body: box.querySelector(".eB").value}); refreshAfterChange(); }
+      catch (e) { toast(e.message); }
+    };
+  });
+}
+
+async function saveDrawerActivity() {
+  const body = $("#aBody").value.trim(); if (!body) { $("#aBody").focus(); return; }
+  const c = S.drawerData.customer, follow = $("#aFollow").value;
+  try {
+    await api(`/api/customers/${c.id}/activities`, {method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({kind: $("#aKind").value, entry_date: $("#aDate").value, body, follow_up: follow === (c.follow_up || "") ? null : follow})});
+    S.openWeeks.add(mondayOf($("#aDate").value));
+    toast("Activity logged"); refreshAfterChange();
+  } catch (e) { toast(e.message); }
+}
+async function refreshAfterChange() { await openDrawer(S.drawerId, true); loadCompanies(); if (S.page === "grid" && S.data) loadGrid(); else if (S.page === "mywork") loadMyWork(); }
+
+// ---------- Dashboard (week over week) ----------
+const BUCKET_LABELS = [["b0", "-0 (current)"], ["b30", "1-30"], ["b60", "31-60"], ["b90", "61-90"], ["b182", "91-182"], ["b365", "183-365"], ["b366", "366+"]];
+const wkLabel = w => { const [, m, d] = w.split("-"); return `${+m}/${+d}`; };
+const niceMax = v => { if (v <= 0) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); const n = v / p; return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p; };
+const kfmt = v => Math.abs(v) >= 1e6 ? "$" + (v / 1e6).toFixed(1) + "M" : Math.abs(v) >= 1e3 ? "$" + Math.round(v / 1e3) + "k" : "$" + Math.round(v);
+
+// One chart, one axis. series: [{key, color, label}]; stacked when several series.
+function svgBars(rows, series, {valueFmt = kfmt, tip, empty = r => false} = {}) {
+  const W = 560, H = 210, L = 52, R = 8, T = 10, B = 26, iw = W - L - R, ih = H - T - B;
+  const totals = rows.map(r => empty(r) ? 0 : series.reduce((s, x) => s + Math.max(0, r[x.key] || 0), 0));
+  const max = niceMax(Math.max(...totals, 0)), n = rows.length, slot = iw / n, bw = Math.max(4, Math.min(28, slot * 0.62));
+  const y = v => T + ih - (v / max) * ih;
+  let g = "";
+  for (let i = 0; i <= 4; i++) { const v = max * i / 4, yy = y(v);
+    g += `<line x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}" stroke="var(--grid)" stroke-width="1"/><text x="${L - 6}" y="${yy + 4}" text-anchor="end" font-size="10" fill="var(--axis)">${valueFmt(v)}</text>`; }
+  rows.forEach((r, i) => {
+    const x = L + slot * i + (slot - bw) / 2;
+    if (!empty(r)) {
+      let base = 0;
+      const segs = series.map(s => ({s, v: Math.max(0, r[s.key] || 0)})).filter(z => z.v > 0);
+      segs.forEach((z, k) => {
+        const y0 = y(base), y1 = y(base + z.v), h = Math.max(0, y0 - y1 - (k < segs.length - 1 ? 2 : 0)); // 2px surface gap
+        const top = k === segs.length - 1;
+        g += top ? `<path d="M${x},${y0} V${y1 + 4} Q${x},${y1} ${x + 4},${y1} H${x + bw - 4} Q${x + bw},${y1} ${x + bw},${y1 + 4} V${y0} Z" fill="${z.s.color}"/>`
+                 : `<rect x="${x}" y="${y0 - h}" width="${bw}" height="${h}" fill="${z.s.color}"/>`;
+        base += z.v;
+      });
+    }
+    if (n <= 16 || i % Math.ceil(n / 13) === 0 || i === n - 1) g += `<text x="${x + bw / 2}" y="${H - 8}" text-anchor="middle" font-size="10" fill="var(--axis)">${wkLabel(r.week)}</text>`;
+    g += `<rect class="hit" x="${L + slot * i}" y="${T}" width="${slot}" height="${ih}" data-tip="${esc(tip(r))}"/>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" role="img">${g}<line x1="${L}" x2="${W - R}" y1="${T + ih}" y2="${T + ih}" stroke="var(--axis)" stroke-width="1"/></svg>`;
+}
+function svgLine(rows, key, {valueFmt = v => v.toFixed(0) + "%", tip, maxFloor = 10} = {}) {
+  const W = 560, H = 210, L = 52, R = 8, T = 10, B = 26, iw = W - L - R, ih = H - T - B;
+  const vals = rows.map(r => r[key]).filter(v => v != null);
+  const max = niceMax(Math.max(maxFloor, ...vals)), n = rows.length, slot = iw / n;
+  const cx = i => L + slot * i + slot / 2, y = v => T + ih - (v / max) * ih;
+  let g = "";
+  for (let i = 0; i <= 4; i++) { const v = max * i / 4, yy = y(v);
+    g += `<line x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}" stroke="var(--grid)"/><text x="${L - 6}" y="${yy + 4}" text-anchor="end" font-size="10" fill="var(--axis)">${valueFmt(v)}</text>`; }
+  let path = "", pts = "";
+  rows.forEach((r, i) => {
+    if (r[key] != null) { path += (path ? " L" : "M") + `${cx(i)},${y(r[key])}`; pts += `<circle cx="${cx(i)}" cy="${y(r[key])}" r="4.5" fill="var(--series-1)" stroke="#fff" stroke-width="2"/>`; }
+    else if (path) path += " M"; // gap where there is no data
+    if (n <= 16 || i % Math.ceil(n / 13) === 0 || i === n - 1) g += `<text x="${cx(i)}" y="${H - 8}" text-anchor="middle" font-size="10" fill="var(--axis)">${wkLabel(r.week)}</text>`;
+  });
+  path = path.replace(/ M(?= L| M|$)/g, "").replace(/ M L/g, " M");
+  rows.forEach((r, i) => g += `<rect class="hit" x="${L + slot * i}" y="${T}" width="${slot}" height="${ih}" data-tip="${esc(tip(r))}"/>`);
+  return `<svg viewBox="0 0 ${W} ${H}" role="img">${g}<path d="${path}" fill="none" stroke="var(--series-1)" stroke-width="2"/>${pts}<line x1="${L}" x2="${W - R}" y1="${T + ih}" y2="${T + ih}" stroke="var(--axis)"/></svg>`;
+}
+function deltaHtml(cur, prev, {money = true, lowerIsBetter = true, pts = false, neutral = false} = {}) {
+  if (cur == null || prev == null) return `<span class="delta flat">no prior week</span>`;
+  const d = cur - prev;
+  if (Math.abs(d) < (pts ? 0.05 : 0.5)) return `<span class="delta flat">● no change vs prior week</span>`;
+  const up = d > 0, cls = neutral ? "flat" : (up === lowerIsBetter ? "bad" : "good");
+  const txt = pts ? `${Math.abs(d).toFixed(1)} pts` : money ? money0(Math.abs(d)) : Math.abs(d).toLocaleString();
+  return `<span class="delta ${cls}">${up ? "▲ up" : "▼ down"} ${txt} vs prior week</span>`;
+}
+
+async function loadDashboard() {
+  const q = new URLSearchParams();
+  if (S.dashCompany) q.set("company", S.dashCompany);
+  q.set("weeks", S.dashWeeks || 12);
+  S.dash = await api(`/api/dashboard?${q}`);
+  S.page = "dashboard";
+  renderDashboard();
+}
+function renderDashboard() {
+  const d = S.dash, W = d.weeks, fi = W.findIndex(w => w.week === d.focus_week), cur = W[fi] || {}, prev = fi > 0 ? W[fi - 1] : null;
+  const prevAr = prev && prev.has_ar ? prev : null;
+  const scopeName = S.dashCompany ? (d.companies[0] ? `${d.companies[0].code} · ${d.companies[0].name}` : "") : "All companies";
+  const anyAr = W.some(w => w.has_ar);
+  const buckets = BUCKET_LABELS.map(([k, l]) => ({key: k, label: l, color: `var(--${k})`}));
+  const arTip = w => !w.has_ar ? `Week of ${wkLabel(w.week)}: no AR report yet` :
+    `<b>Week of ${wkLabel(w.week)}</b> · total ${money0(w.total)}<br>` + BUCKET_LABELS.slice().reverse().map(([k, l]) => `${l}: ${money0(w[k])}`).join("<br>") + (w.carried ? `<br><i>${w.carried} compan${w.carried > 1 ? "ies" : "y"} carried from an earlier report</i>` : "");
+  $("#main").innerHTML = `
+  <div class="toolbar">
+    <h2>Dashboard · ${esc(scopeName)}</h2>
+    <label>Show <select id="dashCo"><option value="">All companies (${S.companies.length})</option>${S.companies.map(c => `<option value="${c.id}" ${+S.dashCompany === c.id ? "selected" : ""}>${esc(c.code)} · ${esc(c.name)}</option>`).join("")}</select></label>
+    <label>Weeks <select id="dashWeeks">${[8, 12, 26, 52].map(n => `<option ${+(S.dashWeeks || 12) === n ? "selected" : ""}>${n}</option>`).join("")}</select></label>
+    <span class="muted">Figures for the week of ${fmtDate(d.focus_week)} (latest AR report), compared with the week before.</span>
+  </div>
+  <div class="page viz">
+    ${cur.carried || cur.missing ? `<div class="coverage">⚠ ${cur.reporting} of ${cur.reporting + cur.carried + cur.missing} companies have a report for this week.${cur.carried ? ` ${cur.carried} use their most recent earlier report.` : ""}${cur.missing ? ` ${cur.missing} have no report yet.` : ""}</div>` : ""}
+    ${anyAr && W.filter(w => w.has_ar).length < 2 ? `<div class="coverage">ℹ Only one week of AR reports so far, so week-over-week changes (paid off, new, moved into 90+) start with next week's import. Collections and contacts already have history.</div>` : ""}
+    <div class="tiles">
+      <div class="tile"><span>Total AR</span><b>${cur.has_ar ? money0(cur.total) : "–"}</b>${deltaHtml(cur.has_ar ? cur.total : null, prevAr && prevAr.total)}</div>
+      <div class="tile"><span>90+ days</span><b>${cur.has_ar ? money0(cur.over90) : "–"}</b>${deltaHtml(cur.has_ar ? cur.over90 : null, prevAr && prevAr.over90)}</div>
+      <div class="tile"><span>% of AR over 90</span><b>${cur.pct90 != null ? cur.pct90.toFixed(1) + "%" : "–"}</b>${deltaHtml(cur.pct90, prevAr && prevAr.pct90, {pts: true})}</div>
+      <div class="tile"><span>Moved into 90+ this week</span><b>${prevAr ? money0(cur.moved90) : "–"}</b><span class="delta flat">${prevAr ? "newly past 90 days" : "needs two weeks of reports"}</span></div>
+      <div class="tile"><span>Paid off / cleared</span><b>${prevAr ? cur.paid_off_count : "–"}</b><span class="delta flat">${prevAr ? money0(cur.paid_off_amt) + " of balances" : "needs two weeks of reports"}</span></div>
+      <div class="tile"><span>New accounts on the report</span><b>${prevAr ? cur.new_count : "–"}</b><span class="delta flat">${prevAr ? money0(cur.new_amt) : "needs two weeks of reports"}</span></div>
+      <div class="tile"><span>Collected (tracked accounts)</span><b>${money0(cur.collected || 0)}</b>${deltaHtml(cur.collected || 0, prev ? prev.collected || 0 : null, {lowerIsBetter: false})}</div>
+      <div class="tile"><span>Contacts logged</span><b>${(cur.contacts || 0).toLocaleString()}</b>${deltaHtml(cur.contacts || 0, prev ? prev.contacts || 0 : null, {money: false, lowerIsBetter: false})}</div>
+    </div>
+    <div class="charts">
+      <div class="card chart"><h3>AR by aging bucket</h3>
+        <div class="legend">${buckets.map(b => `<span><i style="background:${b.color}"></i>${b.label}</span>`).join("")}</div>
+        ${svgBars(W, buckets, {tip: arTip, empty: w => !w.has_ar})}</div>
+      <div class="card chart"><h3>% of AR over 90 days</h3>
+        ${svgLine(W, "pct90", {tip: w => w.pct90 == null ? `Week of ${wkLabel(w.week)}: no AR report yet` : `<b>Week of ${wkLabel(w.week)}</b><br>${w.pct90.toFixed(1)}% over 90 (${money0(w.over90)} of ${money0(w.total)})`})}</div>
+      <div class="card chart"><h3>Collected per week</h3>
+        <p class="muted" style="margin:-6px 0 6px;font-size:12px">Receipts from customers tracked in AR Tracker (from the receipts register imports)${d.has_receipts ? "" : " – none imported yet"}.</p>
+        ${svgBars(W, [{key: "collected", color: "var(--series-1)"}], {tip: w => `<b>Week of ${wkLabel(w.week)}</b><br>${money0(w.collected)} collected · ${w.receipts} receipt${w.receipts === 1 ? "" : "s"}`})}</div>
+      <div class="card chart"><h3>Contacts logged per week</h3>
+        <p class="muted" style="margin:-6px 0 6px;font-size:12px">Calls, voicemails, emails, texts and site visits in the activity log.</p>
+        ${svgBars(W, [{key: "contacts", color: "var(--series-1)"}], {valueFmt: v => Math.round(v).toString(), tip: w => `<b>Week of ${wkLabel(w.week)}</b><br>${w.contacts} contacts · ${w.entries} activity entries`})}</div>
+    </div>
+    <div class="card" style="margin-top:16px"><h3>By company · week of ${fmtDate(d.focus_week)}</h3>
+      <div style="overflow:auto"><table class="dash"><tr><th>Company</th><th>Report</th><th class="num">Total AR</th><th class="num">Change</th><th class="num">90+</th><th class="num">Change</th><th class="num">% 90+</th><th class="num">Paid off</th><th class="num">New</th><th class="num">Moved into 90+</th><th class="num">Collected</th><th class="num">Contacts</th></tr>
+      ${d.by_company.map(c => { const ch = (a, b) => a == null || b == null ? "" : `<span class="${a - b > 0.5 ? "bad" : a - b < -0.5 ? "ok" : ""}">${a - b > 0.5 ? "▲ " : a - b < -0.5 ? "▼ " : ""}${money0(Math.abs(a - b))}</span>`;
+        return `<tr class="${S.dashCompany ? "" : "click"}" data-dco="${c.id}"><td><b>${esc(c.code)}</b> · ${esc(c.name)}</td>
+        <td>${c.as_of ? fmtDate(c.as_of) + (c.fresh ? "" : ` <span class="tag" style="background:#fff4d6;color:#8a5a00">earlier report</span>`) : `<span class="muted">none</span>`}</td>
+        <td class="num">${c.total != null ? money0(c.total) : "–"}</td><td class="num">${ch(c.total, c.prev_total)}</td>
+        <td class="num">${c.over90 != null ? money0(c.over90) : "–"}</td><td class="num">${ch(c.over90, c.prev_over90)}</td>
+        <td class="num">${c.total ? (c.over90 / c.total * 100).toFixed(1) + "%" : "–"}</td>
+        <td class="num">${c.paid_off_count != null && c.prev_total != null ? `${c.paid_off_count} · ${money0(c.paid_off_amt)}` : "–"}</td>
+        <td class="num">${c.new_count != null && c.prev_total != null ? c.new_count : "–"}</td>
+        <td class="num">${c.moved90 != null && c.prev_total != null ? money0(c.moved90) : "–"}</td>
+        <td class="num">${money0(c.collected)}</td><td class="num">${c.contacts}</td></tr>`; }).join("")}
+      </table></div>${S.dashCompany ? "" : `<p class="muted" style="font-size:12px">Click a company to see its own dashboard.</p>`}</div>
+    <details class="card"><summary><b>Weekly numbers (table)</b></summary><div style="overflow:auto"><table class="dash">
+      <tr><th>Week of</th><th class="num">Total AR</th>${BUCKET_LABELS.map(([, l]) => `<th class="num">${l}</th>`).join("")}<th class="num">% 90+</th><th class="num">Paid off</th><th class="num">New</th><th class="num">Moved into 90+</th><th class="num">Collected</th><th class="num">Contacts</th><th>Reports</th></tr>
+      ${W.slice().reverse().map(w => `<tr><td>${fmtDate(w.week)}</td><td class="num">${w.has_ar ? money0(w.total) : "–"}</td>${BUCKET_LABELS.map(([k]) => `<td class="num">${w.has_ar ? money0(w[k]) : "–"}</td>`).join("")}
+        <td class="num">${w.pct90 != null ? w.pct90.toFixed(1) + "%" : "–"}</td><td class="num">${w.paid_off_count || ""}</td><td class="num">${w.new_count || ""}</td><td class="num">${w.moved90 ? money0(w.moved90) : ""}</td>
+        <td class="num">${money0(w.collected)}</td><td class="num">${w.contacts}</td><td>${w.has_ar ? `${w.reporting} new${w.carried ? ", " + w.carried + " carried" : ""}` : ""}</td></tr>`).join("")}
+    </table></div></details>
+  </div>`;
+  $("#dashCo").onchange = e => { S.dashCompany = e.target.value ? +e.target.value : null; loadDashboard(); };
+  $("#dashWeeks").onchange = e => { S.dashWeeks = +e.target.value; loadDashboard(); };
+  document.querySelectorAll("tr.click[data-dco]").forEach(tr => tr.onclick = () => { S.dashCompany = +tr.dataset.dco; loadDashboard(); });
+  const tipEl = $("#vizTip");
+  document.querySelectorAll(".chart .hit").forEach(h => {
+    h.onmousemove = e => { tipEl.innerHTML = h.dataset.tip; tipEl.style.display = "block"; const x = Math.min(e.clientX + 14, innerWidth - tipEl.offsetWidth - 8); tipEl.style.left = x + "px"; tipEl.style.top = (e.clientY + 14) + "px"; };
+    h.onmouseleave = () => tipEl.style.display = "none";
+  });
+}
+
+// ---------- My work (one account owner's accounts across companies) ----------
+// The account's go-to contact on My Work: who, how they prefer to be reached, and a click-to-call/email link.
+function contactLine(k) {
+  if (!k) return `<br><small class="muted">No contact on file</small>`;
+  const byEmail = k.method === "Email" || (!k.phone && k.email);
+  const val = byEmail ? k.email : k.phone;
+  const link = !val ? "" : byEmail ? `<a href="mailto:${esc(val)}">${esc(val)}</a>` : `<a href="tel:${esc(val.replace(/[^0-9+]/g, ""))}">${esc(val)}</a>`;
+  return `<br><small class="mwc">${esc(k.title || "Contact")}${k.name ? ": " + esc(k.name) : ""}${k.method ? ` · prefers ${esc(k.method)}` : ""}${link ? " · " + link : ""}</small>`;
+}
+async function loadMyWork(owner) {
+  if (owner !== undefined) S.mwOwner = owner;
+  const q = S.mwOwner ? `?owner=${encodeURIComponent(S.mwOwner)}` : "";
+  S.mw = await api(`/api/my-work${q}`);
+  S.page = "mywork";
+  renderMyWork();
+}
+// Donut chart: one slice per item ({n, color, tip}), fixed order, 2px surface gap between slices, hover tooltip per slice.
+function svgPie(items) {
+  const total = items.reduce((s, x) => s + x.n, 0), R = 80, r = 48, C = 90;
+  const pt = (a, rad) => `${(C + rad * Math.sin(a)).toFixed(2)},${(C - rad * Math.cos(a)).toFixed(2)}`;
+  let a0 = 0, g = "";
+  for (const x of items) {
+    if (!x.n) continue;
+    const a1 = a0 + x.n / total * 2 * Math.PI, big = a1 - a0 > Math.PI ? 1 : 0;
+    const d = x.n === total
+      ? `M${C},${C - R} A${R},${R} 0 1 1 ${C - 0.01},${C - R} L${C - 0.01},${C - r} A${r},${r} 0 1 0 ${C},${C - r} Z`
+      : `M${pt(a0, R)} A${R},${R} 0 ${big} 1 ${pt(a1, R)} L${pt(a1, r)} A${r},${r} 0 ${big} 0 ${pt(a0, r)} Z`;
+    g += `<path class="pslice" d="${d}" fill="${x.color}" stroke="#fff" stroke-width="2" data-tip="${esc(x.tip)}"/>`;
+    a0 = a1;
+  }
+  return `<svg viewBox="0 0 180 180" role="img" aria-label="Contact methods" style="max-width:200px">${g}
+    <text x="${C}" y="${C - 2}" text-anchor="middle" font-size="22" font-weight="600" fill="#1f2937">${total}</text>
+    <text x="${C}" y="${C + 16}" text-anchor="middle" font-size="11" fill="#6b7280">attempts</text></svg>`;
+}
+
+function renderMyWork() {
+  const d = S.mw, today = d.today, target = d.contact_target;
+  // Company filter: all of this owner's companies, or just one (remembered per viewer).
+  const mwCompanies = [...new Map(d.rows.map(r => [r.company_id, {id: r.company_id, code: r.company_code, name: r.company_name}])).values()].sort((a, b) => a.code.localeCompare(b.code));
+  if (S.mwCompany === undefined) S.mwCompany = +store.get("mwCompany", 0) || 0;
+  const coSel = mwCompanies.some(c => c.id === S.mwCompany) ? S.mwCompany : 0;
+  const rows = coSel ? d.rows.filter(r => r.company_id === coSel) : d.rows;
+  const isMine = d.me_name && d.owner.toLowerCase() === d.me_name.toLowerCase();
+  const due = rows.filter(r => r.follow_up && r.follow_up <= today).sort((a, b) => a.follow_up.localeCompare(b.follow_up));
+  const dueIds = new Set(due.map(r => r.id));
+  const behind = rows.filter(r => !dueIds.has(r.id) && (r.top25 || []).length && (r.contacts_week || 0) < target);
+  const behindIds = new Set(behind.map(r => r.id));
+  const stale = rows.filter(r => !dueIds.has(r.id) && !behindIds.has(r.id) && (!r.last_activity || daysBetween(r.last_activity, today) >= 7));
+  const allBehind = rows.filter(r => (r.top25 || []).length && (r.contacts_week || 0) < target).length;
+  // Open disputes with no Resolution Owner come first: assigning one is the top priority,
+  // so this list ignores the company filter and always covers all of the owner's companies.
+  const needOwner = d.rows.flatMap(r => (r.unassigned_disputes || []).map(x => ({...x, row: r})));
+  const otherCo = coSel && needOwner.some(x => x.row.company_id !== coSel);
+  const needOwnerHtml = needOwner.length ? `<div class="card priority"><h3>⚠ Disputes needing a Resolution Owner (${needOwner.length})</h3>
+      <p style="margin-top:0">Top priority: these disputes have nobody following up. Assign someone now.${otherCo ? " <i>Includes companies outside the current company filter.</i>" : ""}</p>
+      <datalist id="mwOwners">${d.owners.map(o => `<option value="${esc(o)}">`).join("")}</datalist>
+      <div style="overflow:auto"><table class="mw"><tr><th>Co.</th><th>Customer</th><th>Dispute</th><th class="num">Disputed</th><th>Opened</th><th style="min-width:330px">Resolution Owner</th></tr>
+      ${needOwner.map(x => `<tr><td title="${esc(x.row.company_name)}">${esc(x.row.company_code)}</td>
+        <td class="name"><a data-d="${x.row.id}">${esc(x.row.name)}</a><br><small style="color:var(--muted)">${esc(x.row.ext_id)}</small></td>
+        <td>${esc(x.category)}</td><td class="num">${x.amount != null ? money(x.amount) : ""}</td><td>${fmtDate(x.opened_on)} <span class="age ${daysBetween(x.opened_on, today) >= 3 ? "bad" : ""}">${daysBetween(x.opened_on, today) <= 0 ? "today" : daysBetween(x.opened_on, today) + "d ago"}</span></td>
+        <td><div class="qa"><input data-down="${x.id}" list="mwOwners" placeholder="Name of employee who is following up on dispute"><button data-dass="${x.id}" class="primary">Assign</button></div></td></tr>`).join("")}
+      </table></div></div>` : "";
+  const sum = (k, list = rows) => list.reduce((s, r) => s + (+r[k] || 0), 0);
+  // Contact attempts on this owner's accounts (calls, voicemails, emails, texts, site visits), following the company filter.
+  const log = (d.contact_log || []).filter(x => !coSel || x.company_id === coSel);
+  const prevStart = addDays(d.week_start, -7), prevEnd = addDays(d.week_start, -1);
+  const lastWeek = log.filter(x => x.entry_date >= prevStart && x.entry_date <= prevEnd).reduce((s, x) => s + x.n, 0);
+  if (![7, 14, 30].includes(S.mwDays)) S.mwDays = +store.get("mwDays", 7) || 7;
+  const fromDay = addDays(today, 1 - S.mwDays);
+  const byKind = d.contact_kinds.map(k => ({kind: k, n: log.filter(x => x.kind === k && x.entry_date >= fromDay).reduce((s, x) => s + x.n, 0)}));
+  const methodTotal = byKind.reduce((s, x) => s + x.n, 0);
+  const pct = n => methodTotal ? Math.round(n / methodTotal * 1000) / 10 : 0;
+  const methodsHtml = `<div class="card viz"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <h3 style="margin:0;flex:1">Contact methods used</h3>
+      <label>Period <select id="mwDays">${[[7, "Last 7 days"], [14, "Last 14 days"], [30, "Last 30 days"]].map(([v, l]) => `<option value="${v}" ${v === S.mwDays ? "selected" : ""}>${l}</option>`).join("")}</select></label></div>
+    <p class="muted" style="margin:4px 0 10px;font-size:12px">${fmtDate(fromDay)} – ${fmtDate(today)} · ${methodTotal.toLocaleString()} contact attempt${methodTotal === 1 ? "" : "s"} on ${isMine ? "your" : esc(d.owner) + "'s"} accounts${coSel ? " in this company" : ""}</p>
+    ${methodTotal ? `<div class="pie-wrap chart">${svgPie(byKind.map((x, i) => ({...x, color: `var(--cat-${i + 1})`, tip: `<b>${esc(x.kind)}</b><br>${x.n} · ${pct(x.n)}%`})))}
+      <ul class="mlegend">${byKind.map((x, i) => `<li><i style="background:var(--cat-${i + 1})"></i><span>${esc(x.kind)}</span><b>${x.n}</b><span class="muted">${pct(x.n)}%</span></li>`).join("")}</ul></div>
+      <details style="margin-top:8px"><summary style="cursor:pointer;color:var(--muted);font-size:12px">Table view</summary>
+        <table><tr><th>Method</th><th class="num">Attempts</th><th class="num">Share</th></tr>${byKind.map(x => `<tr><td>${esc(x.kind)}</td><td class="num">${x.n}</td><td class="num">${pct(x.n)}%</td></tr>`).join("")}
+        <tr><td><b>Total</b></td><td class="num"><b>${methodTotal}</b></td><td class="num">100%</td></tr></table></details>`
+      : `<p class="muted" style="margin:0">No contact attempts logged in this period.</p>`}</div>`;
+  const statusColor = v => (d.status_options.find(o => o.label === v) || {}).color;
+  const ago = dt => { if (!dt) return `<span class="age bad">none</span>`; const n = daysBetween(dt, today); return `<span class="age ${n >= 14 ? "bad" : n >= 7 ? "warn" : ""}" title="${fmtDate(dt)}">${n <= 0 ? "today" : n + "d ago"}</span>`; };
+  const table = (list, {contacts = false} = {}) => list.length ? `<div style="overflow:auto"><table class="mw"><tr><th>Co.</th><th>Customer</th><th class="num">Total</th><th class="num">90+</th><th>Top 25 in</th><th>Status</th>
+      ${contacts ? `<th>Contacts this week</th>` : ""}<th>Last activity</th><th>Follow-up</th><th style="min-width:330px">Log activity</th></tr>
+      ${list.map(r => `<tr>
+        <td title="${esc(r.company_name)}">${esc(r.company_code)}</td>
+        <td class="name" ${statusColor(r.status) ? `style="background:${esc(statusColor(r.status))}"` : ""}><a data-d="${r.id}">${esc(r.name)}</a>${r.disputes ? ` <span class="tag dtag" title="Open dispute: ${esc(r.disputes)}">⚑ Disputed</span>` : ""}${promiseTag(r.promise, today)}${planTag(r.plan, today)}<br><small style="color:var(--muted)">${esc(r.ext_id)}</small>${contactLine(r.contact)}</td>
+        <td class="num ${r.total < 0 ? "neg" : ""}">${money(r.total)}</td><td class="num"><b>${money(r.over90)}</b></td>
+        <td>${esc((r.top25 || []).join(", "))}</td><td>${esc(r.status || "")}</td>
+        ${contacts ? `<td><b class="${(r.contacts_week || 0) === 0 ? "bad" : ""}">${r.contacts_week || 0} of ${target}</b>${r.last_contact ? `<br><small style="color:var(--muted)">last contact ${fmtDate(r.last_contact)}</small>` : ""}</td>` : ""}
+        <td>${ago(r.last_activity)}${r.last_body ? `<div class="clip" style="max-width:260px;font-size:12px;color:var(--muted)">${esc(r.last_kind)}: ${esc(r.last_body)}</div>` : ""}</td>
+        <td class="${r.follow_up && r.follow_up <= today ? "bad" : ""}" style="white-space:nowrap">${r.follow_up ? (r.follow_up < today ? "overdue " : r.follow_up === today ? "today " : "") + fmtDate(r.follow_up) : ""}</td>
+        <td><div class="qa"><select data-mk="${r.id}">${kindOpts(S.kind === "Note" ? "Call" : S.kind)}</select><input data-mq="${r.id}" placeholder="What happened? Enter to save"><button data-ms="${r.id}">Add</button></div></td>
+      </tr>`).join("")}</table></div>` : `<p style="color:var(--muted);margin:0">Nothing here – nice work.</p>`;
+
+  $("#main").innerHTML = `
+  <div class="toolbar">
+    <h2>${isMine ? "My work" : "Work for " + esc(d.owner || "…")}</h2>
+    <label>Account owner <select id="mwOwner"><option value="">${d.me_name ? "Me (" + esc(d.me_name) + ")" : "Choose an owner…"}</option>
+      ${d.owners.map(o => `<option ${!isMine && o.toLowerCase() === (d.owner || "").toLowerCase() ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></label>
+    ${mwCompanies.length > 1 ? `<label>Company <select id="mwCompany"><option value="0">All companies (${d.rows.length})</option>${mwCompanies.map(c => `<option value="${c.id}" ${c.id === coSel ? "selected" : ""}>${esc(c.code)} · ${esc(c.name)} (${d.rows.filter(r => r.company_id === c.id).length})</option>`).join("")}</select></label>` : mwCompanies.length === 1 ? `<span class="muted">${esc(mwCompanies[0].code)} · ${esc(mwCompanies[0].name)}</span>` : ""}
+    <span class="muted">Week of ${fmtDate(d.week_start)} · Top 25 target: ${target} contacts per week</span>
+  </div>
+  <div class="page">
+    ${!d.owner ? `<div class="card"><h3>Choose an account owner</h3><p>${d.me_name ? "" : `Your sign-in isn't linked to an account owner name yet, so there's no personal list to show. An AR admin can set your full name on <b>Users &amp; access</b> (it must match the name on the company's account owner list). `}Pick an owner above to see their work.</p></div>` : `
+    <div class="tiles">
+      ${needOwner.length ? `<div class="tile alert"><span>Disputes need an owner</span><b>${needOwner.length}</b></div>` : ""}
+      <div class="tile"><span>Open accounts</span><b>${rows.length}</b></div>
+      <div class="tile"><span>Total balance</span><b>${money0(sum("total"))}</b></div>
+      <div class="tile"><span>90+ balance</span><b>${money0(sum("over90"))}</b></div>
+      <div class="tile ${due.length ? "alert" : ""}"><span>Follow-ups due</span><b>${due.length}</b></div>
+      <div class="tile ${allBehind ? "alert" : ""}"><span>Top 25 behind on contact</span><b>${allBehind}</b></div>
+      <div class="tile"><span>No activity 7+ days</span><b>${rows.filter(r => !r.last_activity || daysBetween(r.last_activity, today) >= 7).length}</b></div>
+      <div class="tile" title="Calls, voicemails, emails, texts and site visits logged ${fmtDate(prevStart)} – ${fmtDate(prevEnd)}"><span>Contact attempts last week</span><b>${lastWeek.toLocaleString()}</b><span class="delta flat">${fmtDate(prevStart)} – ${fmtDate(prevEnd)}</span></div>
+      <div class="tile" title="Last week's contact attempts divided by 5 working days"><span>Avg contact attempts per day</span><b>${(lastWeek / 5).toFixed(1)}</b><span class="delta flat">last week, per working day</span></div>
+    </div>
+    ${methodsHtml}
+    ${rows.length ? "" : `<div class="card"><p>No open accounts have <b>${esc(d.owner)}</b> as their Account Owner in the companies you can see.</p></div>`}
+    ${needOwnerHtml}
+    <div class="card"><h3>Follow-ups due (${due.length})</h3>${table(due)}</div>
+    <div class="card"><h3>Top 25 accounts behind on contact (${behind.length})</h3>
+      <p style="color:var(--muted);margin-top:0">Top 25 balances should be contacted ${target}–3 times a week until there's a promise to pay. Calls, voicemails, emails, texts and site visits count.</p>${table(behind, {contacts: true})}</div>
+    <div class="card"><h3>No activity in 7+ days (${stale.length})</h3>${table(stale)}</div>
+    <details class="card"><summary><b>All accounts (${rows.length})</b></summary>${table(rows, {contacts: true})}</details>`}
+  </div>`;
+  $("#mwOwner").onchange = e => loadMyWork(e.target.value);
+  $("#mwDays") && ($("#mwDays").onchange = e => { S.mwDays = +e.target.value; store.set("mwDays", S.mwDays); renderMyWork(); });
+  const tipEl = $("#vizTip");
+  document.querySelectorAll("#main .pie-wrap .pslice").forEach(h => {
+    h.onmousemove = e => { tipEl.innerHTML = h.dataset.tip; tipEl.style.display = "block"; tipEl.style.left = Math.min(e.clientX + 14, innerWidth - tipEl.offsetWidth - 8) + "px"; tipEl.style.top = (e.clientY + 14) + "px"; };
+    h.onmouseleave = () => tipEl.style.display = "none";
+  });
+  $("#mwCompany") && ($("#mwCompany").onchange = e => { S.mwCompany = +e.target.value; store.set("mwCompany", S.mwCompany); renderMyWork(); });
+  const assign = async id => {
+    const inp = document.querySelector(`[data-down="${id}"]`), name = inp.value.trim();
+    if (!name) return inp.focus();
+    try { await flash(inp, put(`/api/disputes/${id}`, {resolution_owner: name})); toast(`${name} is now following up on the dispute`); loadCompanies(); await loadMyWork(); } catch {}
+  };
+  document.querySelectorAll("[data-down]").forEach(el => el.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); assign(el.dataset.down); } });
+  document.querySelectorAll("[data-dass]").forEach(el => el.onclick = () => assign(el.dataset.dass));
+  document.querySelectorAll("#main [data-d]").forEach(el => el.onclick = () => openDrawer(+el.dataset.d));
+  const add = async id => {
+    const inp = document.querySelector(`[data-mq="${id}"]`), kind = document.querySelector(`[data-mk="${id}"]`).value, body = inp.value.trim();
+    if (!body) return inp.focus();
+    inp.disabled = true;
+    try { await flash(inp, api(`/api/customers/${id}/activities`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({kind, body})}));
+      toast(`Logged ${kind.toLowerCase()}`); await loadMyWork(); } catch { inp.disabled = false; }
+  };
+  document.querySelectorAll("[data-mq]").forEach(el => el.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); add(+el.dataset.mq); } });
+  document.querySelectorAll("[data-ms]").forEach(el => el.onclick = () => add(+el.dataset.ms));
+}
+function closeDrawer() { $("#drawer").classList.remove("open"); S.drawerId = null; }
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeDrawer(); });
+
+// ---------- company settings (assigned users and admins) ----------
+async function showCompanySettings() {
+  const d = await api(`/api/companies/${S.companyId}/settings`);
+  const owners = d.account_owners;
+  const usage = Object.fromEntries(d.owners_in_use.map(u => [u.name.toLowerCase(), u]));
+  const notOnList = d.owners_in_use.filter(u => !owners.some(o => o.toLowerCase() === u.name.toLowerCase()));
+  const fmtVal = v => Array.isArray(v) ? (v.length ? v.join(", ") : "(empty)") : v == null ? "–" : JSON.stringify(v);
+  $("#main").innerHTML = `<div class="toolbar"><h2>Company settings · ${esc(d.company.code)} · ${esc(d.company.name)}</h2><span style="flex:1"></span><button onclick="renderGrid()">← Back to accounts</button></div>
+  <div class="page">
+    <p style="color:var(--muted);margin-top:0">These settings apply only to ${esc(d.company.name)}. Only AR admins and the people assigned to this company can see or change them, and every change is recorded.</p>
+    <div class="card"><h3>List of account owners</h3>
+      <p style="color:var(--muted);margin-top:0">The Account Owner field on this company's accounts is picked from this list. Names can't be typed in, so spellings stay consistent and the Account Owner filter stays accurate.</p>
+      ${d.owner_attr_on ? "" : `<p class="bad">The Account Owner column is turned off for this company. An AR admin can turn it on under ⚙ Attributes &amp; companies.</p>`}
+      <table><tr><th>Owner</th><th class="num">Open accounts</th><th class="num">Paid off</th><th></th></tr>
+        ${owners.map((o, i) => { const u = usage[o.toLowerCase()]; return `<tr><td><b>${esc(o)}</b></td><td class="num">${u ? u.open : 0}</td><td class="num">${u ? u.archived : 0}</td>
+          <td><button data-rm="${i}" ${u && u.open ? `title="Accounts keep this name, shown as 'not on list', until reassigned"` : ""}>Remove</button></td></tr>`; }).join("")}
+        ${owners.length ? "" : `<tr><td colspan="4" style="color:var(--muted)">No owners yet.</td></tr>`}
+      </table>
+      <p><input id="ownNew" placeholder="Owner name, e.g. Cheryl Smith" style="width:260px"> <button class="primary" id="ownAdd">Add owner</button></p>
+      ${notOnList.length ? `<p>Names already set on accounts but not on this list: <b>${notOnList.map(u => `${esc(u.name)} (${u.open} open)`).join(", ")}</b>
+        <button id="ownImport">Add ${notOnList.length > 1 ? "them" : "it"} to the list</button></p>` : ""}
+    </div>
+    <div class="card"><h3>Settings changes</h3>
+      ${d.log.length ? `<table><tr><th>When</th><th>Who</th><th>Setting</th><th>From</th><th>To</th></tr>${d.log.map(l => `<tr><td style="white-space:nowrap">${fmtTs(l.changed_at)}</td><td>${esc(l.changed_by)}</td><td>${l.key === "account_owners" ? "Account owners" : esc(l.key)}</td><td style="color:var(--muted)">${esc(fmtVal(l.old_value))}</td><td>${esc(fmtVal(l.new_value))}</td></tr>`).join("")}</table>` : `<p style="color:var(--muted)">No changes yet.</p>`}
+    </div>
+  </div>`;
+  const save = async list => {
+    try { await put(`/api/companies/${S.companyId}/settings/account_owners`, {owners: list}); toast("Account owners saved"); await showCompanySettings(); }
+    catch (e) { toast(e.message); }
+  };
+  $("#ownAdd").onclick = () => { const n = $("#ownNew").value.trim(); if (!n) return $("#ownNew").focus(); save([...owners, n]); };
+  $("#ownNew").onkeydown = e => { if (e.key === "Enter") $("#ownAdd").click(); };
+  document.querySelectorAll("[data-rm]").forEach(el => el.onclick = () => {
+    const name = owners[+el.dataset.rm], u = usage[name.toLowerCase()];
+    if (u && u.open && !confirm(`${name} owns ${u.open} open account(s). Remove from the list anyway? Those accounts keep the name (marked "not on list") until reassigned.`)) return;
+    save(owners.filter((_, i) => i !== +el.dataset.rm));
+  });
+  $("#ownImport") && ($("#ownImport").onclick = () => save([...owners, ...notOnList.map(u => u.name)]));
+  S.data && (S.data.account_owners = owners);
+}
+
+async function showImports() {
+  const list = await api(`/api/companies/${S.companyId}/imports`);
+  $("#main").innerHTML = `<div class="toolbar"><h2>Import history · ${esc(S.data.company.name)}</h2><span style="flex:1"></span><button onclick="renderGrid()">← Back to accounts</button></div>
+  <div class="page"><div class="card"><table>
+    <tr><th>As of</th><th>File</th><th>Imported</th><th>By</th><th class="num">Customers / lines</th><th class="num">Total</th><th class="num">New</th><th class="num">Paid off</th><th class="num">Returned</th></tr>
+    ${list.map(i => `<tr><td>${fmtDate(i.as_of)}</td><td>${esc(i.filename)}</td><td>${fmtTs(i.imported_at)}</td><td>${esc(i.imported_by || "")}</td><td class="num">${i.line_count}</td><td class="num">${money(i.total)}</td><td class="num">${i.added}</td><td class="num">${i.archived}</td><td class="num">${i.reactivated}</td></tr>`).join("")}
+  </table></div></div>`;
+}
+
+// ---------- import ----------
+$("#btnImport").onclick = () => $("#file").click();
+$("#file").onchange = async e => {
+  const files = [...e.target.files]; if (!files.length) return;
+  const fd = new FormData(); files.forEach(f => fd.append("file", f, f.name));
+  $("#btnImport").disabled = true; $("#btnImport").textContent = "Importing…";
+  try {
+    const res = await api("/api/import", {method: "POST", body: fd});
+    $("#irBody").innerHTML = `<table><tr><th>File / sheet</th><th>Company</th><th>As of</th><th>Result</th><th class="num">Customers</th><th class="num">New</th><th class="num">Paid off → archived</th><th class="num">Returned</th><th class="num">Total</th></tr>
+      ${res.map(r => r.error ? `<tr><td>${esc(r.file)} ${esc(r.sheet || "")}</td><td colspan="8" class="bad">${esc(r.error)}</td></tr>` : (x => `<tr>
+        <td>${esc(r.file)}<br><small>${esc(x.sheet)}</small></td><td>${esc(x.company)}</td><td>${fmtDate(x.as_of)}</td>
+        <td class="${x.status === "error" ? "bad" : x.status === "skipped" ? "skip" : "ok"}">${esc(x.status)}${x.message ? "<br><small>" + esc(x.message) + "</small>" : ""}</td>
+        <td class="num">${x.customers}</td><td class="num">${x.added}</td><td class="num">${x.archived}</td><td class="num">${x.reactivated}</td><td class="num">${money(x.total)}</td></tr>`)(r.result)).join("")}</table>`;
+    $("#importResult").style.display = "flex";
+    await loadCompanies(); if (S.page === "grid") loadGrid();
+  } catch (err) { toast("Import failed: " + err.message); }
+  finally { $("#btnImport").disabled = false; $("#btnImport").textContent = "⬆ Import AR report(s)"; e.target.value = ""; }
+};
+
+$("#btnHistory").onclick = () => $("#hfile").click();
+$("#hfile").onchange = async e => {
+  const files = [...e.target.files]; if (!files.length) return;
+  const fd = new FormData(); files.forEach(f => fd.append("file", f, f.name));
+  const b = $("#btnHistory"); b.disabled = true; b.textContent = "Importing…";
+  try {
+    const res = await api("/api/import-history", {method: "POST", body: fd});
+    $("#irBody").innerHTML = `<p style="color:var(--muted)">Nothing already in the app is overwritten or duplicated, so this is safe to re-run. Import the latest AR report first, so customers who aren't on it go to the archive.</p>` +
+      res.map(r => r.error ? `<p class="bad"><b>${esc(r.file)}</b>: ${esc(r.error)}</p>` : (x => `
+      <h4>${esc(r.file)} → ${esc(x.company)} (as of ${fmtDate(x.as_of)})</h4>
+      <table><tr><td>Sheets read</td><td>${esc(x.sheets.join(", "))}</td></tr>
+        <tr><td>Customers matched</td><td>${x.customers_matched}</td></tr>
+        <tr><td>Not on any report → added to archive</td><td>${x.customers_created_archived}</td></tr>
+        <tr><td>Activity entries imported</td><td class="ok">${x.notes_imported}</td></tr>
+        <tr><td>Already in the activity log (skipped)</td><td>${x.notes_kept_existing}</td></tr>
+        <tr><td>Attribute values set</td><td>${x.attrs_set}</td></tr>
+        <tr><td>Statuses set from cell colour</td><td>${x.statuses_set}</td></tr>
+        ${x.new_attributes.length ? `<tr><td>New global attributes created</td><td>${esc(x.new_attributes.join(", "))}</td></tr>` : ""}
+        ${x.warnings.map(w => `<tr><td colspan="2" class="bad">${esc(w)}</td></tr>`).join("")}</table>
+      <details><summary>Notes columns → week (${x.note_columns.length})</summary><table>${x.note_columns.map(([h, w]) => `<tr><td>${esc(h.slice(0, 90))}</td><td>${esc(w)}</td></tr>`).join("")}</table></details>`)(r.result)).join("");
+    $("#importResult").style.display = "flex";
+    await loadCompanies(); if (S.page === "grid") loadGrid();
+  } catch (err) { toast("Import failed: " + err.message); }
+  finally { b.disabled = false; b.textContent = "⬆ Import notes history"; e.target.value = ""; }
+};
+
+$("#btnReceipts").onclick = () => $("#rfile").click();
+$("#rfile").onchange = async e => {
+  const files = [...e.target.files]; if (!files.length) return;
+  const fd = new FormData(); files.forEach(f => fd.append("file", f, f.name));
+  const b = $("#btnReceipts"); b.disabled = true; b.textContent = "Importing…";
+  try {
+    const res = await api("/api/import-receipts", {method: "POST", body: fd});
+    $("#irBody").innerHTML = `<p style="color:var(--muted)">Each customer's most recent payment day is used, with same-day receipts totalled. A newer payment date already in the app is never replaced.</p>` +
+      res.map(r => r.error ? `<p class="bad"><b>${esc(r.file)}</b>: ${esc(r.error)}</p>` : (x => `
+      <h4>${esc(r.file)}</h4>
+      <table><tr><td>Receipts read</td><td>${x.receipts.toLocaleString()} · ${fmtDate(x.first_date)} – ${fmtDate(x.last_date)} · ${money0(x.total)}</td></tr>
+        <tr><td>Customers in the file</td><td>${x.customers_in_file}</td></tr>
+        <tr><td>Matched to open accounts</td><td>${x.matched_open}</td></tr>
+        <tr><td>Matched to paid-off / archived accounts</td><td>${x.matched_archived}</td></tr>
+        <tr><td>Last payment updated</td><td class="ok"><b>${x.updated}</b></td></tr>
+        <tr><td>Already up to date</td><td>${x.already_current}</td></tr>
+        <tr><td>Kept a newer date already in the app</td><td>${x.kept_newer}</td></tr>
+        <tr><td>Not in the app (no AR balance on record) – ignored</td><td class="skip">${x.not_in_app}</td></tr>
+        ${x.ambiguous.length ? `<tr><td class="bad">Customer ID found in more than one company – skipped</td><td class="bad">${esc(x.ambiguous.join(", "))}</td></tr>` : ""}</table>
+      ${x.examples.length ? `<details><summary>Examples of same-day payments totalled</summary><table>${x.examples.map(([n, d, a, k]) => `<tr><td>${esc(n)}</td><td>${fmtDate(d)}</td><td class="num">${money(a)}</td><td>${k} receipts</td></tr>`).join("")}</table></details>` : ""}`)(r.result)).join("");
+    $("#importResult").style.display = "flex";
+    if (S.page === "grid" && S.data) loadGrid();
+  } catch (err) { toast("Import failed: " + err.message); }
+  finally { b.disabled = false; b.textContent = "⬆ Import receipts"; e.target.value = ""; }
+};
+
+// ---------- users & company access ----------
+$("#btnUsers").onclick = () => { S.page = "users"; renderNav(); renderUsers(); };
+async function renderUsers() {
+  const d = await api("/api/users");
+  const isAdmin = u => (u.roles || "").split(",").includes("ar_admin");
+  const status = u => isAdmin(u) ? `<span class="tag" style="background:var(--accent-soft);color:var(--accent)">admin – all companies</span>`
+    : !u.company_ids.length ? `<span class="tag" style="background:#fde2e1;color:var(--danger)">no access</span>`
+    : `<span class="tag">${u.company_ids.length} compan${u.company_ids.length > 1 ? "ies" : "y"}</span>` + (u.settings_company_ids.length ? `<br><span class="tag" style="background:#fff4d6;color:#8a5a00">⚙ settings manager: ${u.settings_company_ids.length}</span>` : "");
+  $("#main").innerHTML = `<div class="toolbar"><h2>Users &amp; company access</h2></div><div class="page">
+  <div class="card"><h3>Who can see which companies</h3>
+    <p style="color:var(--muted);margin-top:0">Staff see only the companies ticked here; with none ticked they see nothing. AR admins always see every company and its settings.
+      Tick <b>⚙</b> under a company to also let that person open its <b>Company settings</b> (for example a manager who maintains the account owner list). Only AR admins can grant this. Set each collector's <b>full name</b> exactly as it appears on the account owner list, so their accounts show on their <b>★ My work</b> page.
+      People appear here automatically the first time they sign in. You can also add someone ahead of time by their sign-in name.</p>
+    <p><input id="nuName" placeholder="Sign-in user name" style="width:220px"> <input id="nuEmail" placeholder="Email (optional)" style="width:220px"> <button class="primary" id="nuAdd">Add user</button></p>
+    ${d.users.length ? `<div style="overflow:auto"><table class="matrix"><tr><th>User</th><th>Access</th>${d.companies.map(c => `<th class="rot" title="${esc(c.name)}">${esc(c.code)} · ${esc(c.name)}</th>`).join("")}<th></th></tr>
+    ${d.users.map(u => `<tr data-user="${esc(u.username)}">
+      <td><b>${esc(u.username)}</b><br><input data-un value="${esc(u.display_name || "")}" placeholder="Full name (account owner)" title="Must match the name on the company's account owner list. Links this sign-in to their accounts on My work." style="width:180px;font-size:12px;margin:2px 0">${u.email ? `<br><small style="color:var(--muted)">${esc(u.email)}</small>` : ""}<br><small style="color:var(--muted)">${u.last_seen ? "last sign-in " + fmtTs(u.last_seen) : "hasn't signed in yet"}</small></td>
+      <td>${status(u)}</td>
+      ${d.companies.map(c => `<td style="white-space:nowrap"><input type="checkbox" data-uc="${c.id}" ${u.company_ids.includes(c.id) ? "checked" : ""} ${isAdmin(u) ? "disabled title='Admins see every company'" : "title='Can see this company'"}><label title="Can open this company's Company settings" style="font-size:11px;margin-left:2px;${isAdmin(u) || !u.company_ids.includes(c.id) ? "opacity:.35" : ""}"><input type="checkbox" data-us="${c.id}" ${u.settings_company_ids.includes(c.id) ? "checked" : ""} ${isAdmin(u) || !u.company_ids.includes(c.id) ? "disabled" : ""}>⚙</label></td>`).join("")}
+      <td style="white-space:nowrap">${isAdmin(u) ? "" : `<button data-ua="1">All</button> <button data-ua="0">None</button> `}${u.username === d.me ? "" : `<button data-urm>Remove</button>`}</td>
+    </tr>`).join("")}</table></div>` : `<p>No users yet.</p>`}
+  </div>
+  <div class="card"><h3>Access changes</h3>
+    ${d.log.length ? `<table><tr><th>When</th><th>By</th><th>User</th><th>Change</th></tr>${d.log.map(l => `<tr><td>${fmtTs(l.at)}</td><td>${esc(l.actor)}</td><td>${esc(l.username)}</td><td>${esc(l.change)}</td></tr>`).join("")}</table>` : `<p style="color:var(--muted)">No changes yet.</p>`}
+  </div></div>`;
+  const save = async tr => {
+    const ids = [...tr.querySelectorAll("[data-uc]")].filter(x => x.checked).map(x => +x.dataset.uc);
+    const mgr = [...tr.querySelectorAll("[data-us]")].filter(x => x.checked && ids.includes(+x.dataset.us)).map(x => +x.dataset.us);
+    try { await put(`/api/users/${encodeURIComponent(tr.dataset.user)}/companies`, {company_ids: ids, settings_company_ids: mgr}); toast("Access updated for " + tr.dataset.user); renderUsers(); }
+    catch (e) { toast(e.message); renderUsers(); }
+  };
+  document.querySelectorAll("[data-uc]").forEach(el => el.onchange = () => save(el.closest("tr")));
+  document.querySelectorAll("[data-us]").forEach(el => el.onchange = () => save(el.closest("tr")));
+  document.querySelectorAll("[data-un]").forEach(el => el.onchange = async () => {
+    const u = el.closest("tr").dataset.user;
+    try { await flash(el, put(`/api/users/${encodeURIComponent(u)}/name`, {display_name: el.value})); toast(`Full name saved for ${u}`); } catch {}
+  });
+  document.querySelectorAll("[data-ua]").forEach(el => el.onclick = () => { const tr = el.closest("tr"); tr.querySelectorAll("[data-uc]").forEach(x => x.checked = el.dataset.ua === "1"); if (el.dataset.ua === "0") tr.querySelectorAll("[data-us]").forEach(x => x.checked = false); save(tr); });
+  document.querySelectorAll("[data-urm]").forEach(el => el.onclick = async () => {
+    const u = el.closest("tr").dataset.user;
+    if (!confirm(`Remove ${u} and all of their company access?`)) return;
+    await api(`/api/users/${encodeURIComponent(u)}`, {method: "DELETE"}); toast(`Removed ${u}`); renderUsers();
+  });
+  $("#nuAdd").onclick = async () => {
+    const username = $("#nuName").value.trim(); if (!username) return $("#nuName").focus();
+    try { await api("/api/users", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({username, email: $("#nuEmail").value})}); toast("Added " + username); renderUsers(); }
+    catch (e) { toast(e.message); }
+  };
+}
+
+// ---------- settings ----------
+$("#btnSettings").onclick = () => { S.page = "settings"; renderNav(); renderSettings(); };
+const KINDS = ["text", "longtext", "date", "number", "money", "select"];
+async function renderSettings() {
+  const s = await api("/api/settings");
+  const on = new Set(s.enabled.map(e => e.company_id + ":" + e.attribute_id));
+  const active = s.attributes.filter(a => !a.archived);
+  $("#main").innerHTML = `<div class="toolbar"><h2>Global attributes &amp; company settings</h2></div><div class="page">
+  <div class="card"><h3>Which attributes each company uses</h3>
+    ${s.companies.length ? `<table class="matrix"><tr><th>Attribute</th>${s.companies.map(c => `<th class="rot">${esc(c.code)} · ${esc(c.name)}</th>`).join("")}<th>All</th></tr>
+    ${active.map(a => `<tr><td>${esc(a.name)}</td>${s.companies.map(c => `<td><input type="checkbox" data-m="${c.id}:${a.id}" ${on.has(c.id + ":" + a.id) ? "checked" : ""}></td>`).join("")}
+      <td><button data-all="${a.id}" data-v="1">on</button> <button data-all="${a.id}" data-v="0">off</button></td></tr>`).join("")}</table>` : "<p>No companies yet — they are created automatically on import.</p>"}
+  </div>
+  <div class="card"><h3>Master attribute list</h3>
+    <table><tr><th>Name</th><th>Type</th><th>Choices (for “select”)</th><th>On for new companies</th><th>Retired</th><th></th></tr>
+    ${s.attributes.map(a => attrRow(a)).join("")}
+    ${attrRow({id: "new", name: "", kind: "text", options: "[]", default_on: 0, archived: 0})}
+    </table>
+    <p style="color:var(--muted)">Retiring an attribute hides it everywhere but keeps its saved values. “Select” choices can each have a highlight colour; the attribute named <b>Status</b> colours the customer name.</p>
+  </div></div>`;
+  document.querySelectorAll("[data-m]").forEach(el => el.onchange = async () => { const [c, a] = el.dataset.m.split(":"); await flash(el, put(`/api/companies/${c}/attributes/${a}`, {enabled: el.checked})); });
+  document.querySelectorAll("[data-all]").forEach(el => el.onclick = async () => { await put(`/api/attributes/${el.dataset.all}/all`, {enabled: el.dataset.v === "1"}); renderSettings(); });
+  document.querySelectorAll("tr[data-attr]").forEach(tr => {
+    const kindSel = tr.querySelector("[name=kind]"), optBox = tr.querySelector(".opts");
+    const sync = () => optBox.style.display = kindSel.value === "select" ? "" : "none"; sync(); kindSel.onchange = sync;
+    tr.querySelector(".addopt").onclick = () => optBox.insertAdjacentHTML("beforeend", optRow({label: "", color: "#ffeb9c"}));
+    optBox.onclick = e => { if (e.target.classList.contains("delopt")) e.target.parentElement.remove(); };
+    tr.querySelector(".save").onclick = async () => {
+      const id = tr.dataset.attr;
+      const body = { name: tr.querySelector("[name=name]").value, kind: kindSel.value,
+        options: [...optBox.querySelectorAll(".opt")].map(o => ({label: o.querySelector("[type=text]").value.trim(), color: o.querySelector("[type=color]").value})).filter(o => o.label),
+        default_on: tr.querySelector("[name=def]").checked, archived: tr.querySelector("[name=arch]").checked };
+      try { id === "new" ? await api("/api/attributes", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)}) : await put(`/api/attributes/${id}`, body); toast("Saved"); renderSettings(); }
+      catch (e) { toast(e.message); }
+    };
+  });
+}
+const optRow = o => `<div class="opt"><input type="text" value="${esc(o.label)}" placeholder="Choice"><input type="color" value="${esc(o.color || "#ffffff")}"><button class="delopt" title="Remove">✕</button></div>`;
+function attrRow(a) {
+  const opts = JSON.parse(a.options || "[]");
+  return `<tr data-attr="${a.id}" style="${a.archived ? "opacity:.55" : ""}">
+    <td><input name="name" value="${esc(a.name)}" placeholder="${a.id === "new" ? "New attribute name…" : ""}" style="width:220px"></td>
+    <td><select name="kind">${KINDS.map(k => `<option ${k === a.kind ? "selected" : ""}>${k}</option>`).join("")}</select></td>
+    <td><div class="opts">${opts.map(optRow).join("")}</div><button class="addopt" style="font-size:11px">+ choice</button></td>
+    <td style="text-align:center"><input type="checkbox" name="def" ${a.default_on ? "checked" : ""}></td>
+    <td style="text-align:center"><input type="checkbox" name="arch" ${a.archived ? "checked" : ""}></td>
+    <td><button class="save ${a.id === "new" ? "primary" : ""}">${a.id === "new" ? "Add" : "Save"}</button></td></tr>`;
+}
+
+// ---------- sign-in ----------
+async function showSignIn(msg = "") {
+  const h = await fetch("/health").then(r => r.json()).catch(() => ({}));
+  $("#signin").style.display = "flex";
+  $("#siBody").innerHTML = (msg ? `<p class="bad">${esc(msg)}</p>` : "") + (h.dev_sign_in ? `
+    <p style="color:var(--muted)">Test sign-in for local development. In production this is replaced by your identity provider.</p>
+    <p><label>User name<br><input id="siUser" value="${esc(store.get("devUser", ""))}" placeholder="e.g. jwest" style="width:100%"></label></p>
+    <p><label>Role<br><select id="siRole" style="width:100%"><option value="ar_staff">AR staff – view accounts and log activity</option><option value="ar_admin">AR admin – also imports reports and manages settings</option></select></label></p>
+    <p><button class="primary" id="siGo">Sign in</button></p>`
+    : `<p>Production sign-in is not configured on this server yet.</p>`);
+  if (!h.dev_sign_in) return;
+  if (store.get("devRole", "")) $("#siRole").value = store.get("devRole", "");
+  const go = async () => {
+    const u = $("#siUser").value.trim(); if (!u) return $("#siUser").focus();
+    try {
+      const r = await api("/auth/dev-login", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({user: u, roles: [$("#siRole").value]})});
+      store.set("devUser", u); store.set("devRole", $("#siRole").value);
+      token.set(r.token); $("#signin").style.display = "none"; start();
+    } catch (e) { toast(e.message); }
+  };
+  $("#siGo").onclick = go; $("#siUser").onkeydown = e => { if (e.key === "Enter") go(); };
+  $("#siUser").focus();
+}
+$("#btnOut").onclick = () => { token.set(null); S.me = null; closeDrawer(); $("#main").innerHTML = ""; $("#nav").innerHTML = ""; showSignIn(); };
+
+async function start() {
+  if (!token.get()) return showSignIn();
+  try { S.me = await api("/api/me"); } catch { return; }
+  if (!S.me.staff) { token.set(null); return showSignIn(`${S.me.principal.user} does not have access to AR Tracker.`); }
+  $("#who").textContent = `${S.me.principal.user} · ${S.me.admin ? "AR admin" : "AR staff"}`;
+  ["#btnImport", "#btnHistory", "#btnReceipts", "#btnSettings", "#btnUsers"].forEach(s => $(s).style.display = S.me.admin ? "" : "none");
+  await loadCompanies();
+  if (!S.me.admin && !S.companies.length) {
+    $("#main").innerHTML = `<div class="page"><div class="card"><h3>No companies assigned yet</h3>
+      <p>You're signed in as <b>${esc(S.me.principal.user)}</b>, but an AR admin hasn't given you access to any companies.</p>
+      <p style="color:var(--muted)">Ask an AR admin to open <b>Users &amp; access</b> and tick the companies you work on. Then refresh this page.</p></div></div>`;
+    return;
+  }
+  // People linked to an account owner name land on their own work list.
+  if (S.me.display_name) { S.page = "mywork"; renderNav(); return loadMyWork(); }
+  if (S.companyId) loadGrid();
+}
+start().catch(e => toast(e.message));
+</script>
+</body>
+</html>
